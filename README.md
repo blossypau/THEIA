@@ -102,3 +102,15 @@ Run automated tests with:
 Tests use temporary SQLite storage, including the pre-existing tests. Coverage includes registration through Streamlit, navigation, duplicates, conflicting imports and rollback, source/profile/period isolation, editing and analysis invalidation, baseline/anomaly sufficiency, migration backups, research imports, real anatomy identifiers, HTTP bridge and OHIF configuration, and PDF extraction. Browser verification additionally exercised an actual GLB click and OHIF's local file screen. A compatible DICOM study was not available for diagnostic image rendering verification. This remains an experimental research prototype, without validated clinical diagnosis, real sensor connectivity or remote synchronization inferred from stored records.
 
 The portable anatomy runtime is in `assets/anatomy/`, copied from the downloaded repository without its `.git` directory. Downloaded `third_party/` repositories remain local and ignored.
+
+## THEIA 4.0 - Space Health Command
+
+The command workspace now includes a profile selector shared across mission entry, analytics, anatomical panels and PDF generation. Mission Control has an interactive procedural orbital scene, compact physiological panels, verified local service states, crew profiles and mission events. Health Dashboard provides period filters, comparative baselines and chart selection; Intelligence Center includes paired-day correlation visualization. NASA Data Hub retains OSD-1 import and separates research topics from verified accessions.
+
+Start the local stack with `.venv\Scripts\python.exe scripts\start_theia_services.py`, then open http://localhost:8507. The THEIA-owned visual runtime is served on **127.0.0.1:3004**, separately from legacy anatomy servers on 3002. This serves both the original procedural orbit scene and the real 826-structure GLB with holographic rendering, selection, wireframe, isolation, opacity and reset. If visuals are unavailable, a clear empty state and keyboard anatomical selection remain available. No flight telemetry is derived from the illustrative scene.
+
+OHIF uses shared HTTP readiness checks and a discovered free port if 3001 contains an incompatible old server. The original process is preserved. `--ohif-only` starts/verifies OHIF independently. No private DICOM data is uploaded by the configured local source. Other profiles' generated PDF bytes are cleared when switching astronauts.
+
+The UI stays on Streamlit with native controls, Plotly and the existing local Three.js runtime, avoiding a second frontend application and duplicated analysis. CSS tokens, reusable visual primitives, responsive layout and reduced-motion support are in `modules/ui/`. Preview screenshots under `docs/previews/` use isolated synthetic profiles, not private crew data. Run `.venv\Scripts\python.exe -m pytest -q` for the full test suite.
+
+Visual service contract: `GET http://127.0.0.1:3004/theia/visual-health` returns `{ "service": "theia-visuals", "version": 4, "model": true|false }`. It exposes no astronaut measurements. All other routes serve only the licensed assets directory; unknown assets return HTTP 404.

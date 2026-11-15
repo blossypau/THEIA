@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 from datetime import datetime, timezone
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -14,7 +14,7 @@ def _build_measurement_payload(form_data):
 
 
 def render_data_management():
-    st.subheader("Health data management")
+    st.caption("Health data management workspace")
     st.caption("Timestamps use UTC. Mood, energy and fatigue use a 0-100 score. Blood pressure is a single recorded pressure value; record its context explicitly.")
     with SessionLocal() as session:
         astronaut = ensure_astronaut(session)

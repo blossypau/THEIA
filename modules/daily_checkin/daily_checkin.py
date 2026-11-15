@@ -34,7 +34,7 @@ def render_daily_checkin() -> None:
         if submitted:
             checkin = DailyCheckin(
                 astronaut_id=ensure_astronaut(session).id,
-                mission_day=128,
+                mission_day=ensure_astronaut(session).mission_day,
                 sleep_duration_hours=float(sleep_duration),
                 sleep_quality=int(sleep_quality),
                 mood=int(mood),

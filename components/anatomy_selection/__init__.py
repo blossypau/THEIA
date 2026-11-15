@@ -8,5 +8,5 @@ _component = components.declare_component(
 )
 
 
-def anatomy_selection_component(key: str | None = None, default=None):
-    return _component(key=key, default=default)
+def anatomy_selection_component(key: str | None = None, default=None, viewer_url="http://127.0.0.1:3004/"):
+    return _component(key=key, default=default, viewer_url=viewer_url)

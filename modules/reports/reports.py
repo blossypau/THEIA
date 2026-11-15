@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 from typing import Any, cast
 from datetime import datetime, timezone
 from xml.sax.saxutils import escape
@@ -88,11 +88,16 @@ def generate_pdf_report(session=None, output_path=None, astronaut_id=None, start
 
 
 def render_reports():
-    st.subheader("Mission Reports")
+    with SessionLocal() as session:
+        profile_id = ensure_astronaut(session).id
+    if st.session_state.get('report_profile_id') != profile_id:
+        st.session_state.pop('report_bytes', None)
+    st.caption("Mission Reports workspace")
     st.caption("PDF uses the same versioned statistical snapshot as Dashboard, Intelligence Center and anatomy panels.")
     if st.button("Generate PDF report", key="generate_report"):
         path = generate_pdf_report()
         st.session_state['report_bytes'] = path.read_bytes()
+        st.session_state['report_profile_id'] = profile_id
         st.success("Report generated and registered locally.")
     if 'report_bytes' in st.session_state:
         st.download_button("Download report", st.session_state['report_bytes'], "theia_report.pdf", "application/pdf")
