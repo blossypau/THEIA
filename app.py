@@ -62,11 +62,14 @@ def _live_system_state(session):
 
 
 def _profile_changed():
+    st.session_state['acquisition_running']=False
+    st.session_state.pop('acquisition_connector',None)
+    st.session_state.pop('unreviewed_ble_rr',None)
     st.session_state.pop('science_nn_result', None)
     st.session_state.pop('report_bytes', None)
     st.session_state.pop('report_profile_id', None)
     for key in list(st.session_state):
-        if key.startswith('history_'):
+        if key.startswith(('history_','entry_','data_','corrected_','science_period_')) or key in {'edit_record','correction_reason'}:
             st.session_state.pop(key, None)
 
 
@@ -80,6 +83,7 @@ def render_sidebar():
     with st.sidebar:
         st.markdown("<div class='brand-shell'><div class='brand-mark'><div class='brand-orbit'>✧</div><div class='brand-name'>THEIA</div></div><div class='brand-caption'>SPACE HEALTH COMMAND CENTER</div></div>", unsafe_allow_html=True)
         st.toggle('Synthetic scenario workspace',key='scenario_mode',on_change=_workspace_changed,help='A separate SQLite database for this browser session. No real measurements are edited or reset.')
+        st.toggle('Refresh local records',value=True,key='follow_local_records',help='Polls SQLite for new records every two seconds. This is not proof of a live sensor connection.')
         with SessionLocal() as session:
             profiles = session.query(AstronautProfile).order_by(AstronautProfile.id).all()
             labels = {p.id: p.name for p in profiles}
@@ -87,7 +91,7 @@ def render_sidebar():
         st.caption("WORKSPACE / MISSION OPERATIONS")
         selected = st.radio("Navigation", list(PAGES), label_visibility="collapsed", key="navigation")
         st.divider()
-        st.caption("THEIA 4.1 · LOCAL RESEARCH BUILD")
+        st.caption("THEIA 5.0 · LOCAL RESEARCH BUILD")
         st.caption("Experimental analytics. No remote synchronization inferred.")
         return PAGES[selected]
 
@@ -107,10 +111,12 @@ def render_settings():
         st.metric("Mission", astronaut.mission_id)
         st.metric("Selected profile", astronaut.name)
     st.info("Records stay in local SQLite. Sensor connectivity and remote sync are not implied by stored measurements.")
-    if st.button("Load explicit synthetic demo", key="seed_demo"):
-        with SessionLocal() as session:
-            seed_sample_data(session)
-        st.success("Synthetic demo loaded only if the database contained no measurements.")
+    def isolated_demo():
+        st.session_state['scenario_mode']=True
+        _workspace_changed()
+        st.session_state['navigation']='Mission Scenario Mode'
+    st.button('Open isolated synthetic scenario',key='seed_demo',on_click=isolated_demo)
+
 
 
 def render_application():
@@ -120,6 +126,8 @@ def render_application():
     token = active_astronaut_id.set(st.session_state['active_astronaut'])
     try:
         render_top_bar()
+        from modules.ui.acquisition import acquisition_tick
+        acquisition_tick()
         if st.session_state.get('scenario_mode'):
             st.warning('SYNTHETIC SCENARIO WORKSPACE · Isolated SQLite · All recorded measurements are simulated')
         from modules.dashboard.dashboard import render_health_dashboard

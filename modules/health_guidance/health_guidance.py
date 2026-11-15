@@ -12,6 +12,25 @@ def render_health_guidance():
     st.caption("Educational guidance library / actions are self-reported")
     st.caption("Action-oriented tasks to improve daily health and reduce isolation risk during mission operations.")
 
+    from database.database import SessionLocal
+    from database.repository import ensure_astronaut
+    from intelligence.historical import historical_analysis
+    from services.space_context import hazard_inventory
+    with SessionLocal() as session:
+        profile=ensure_astronaut(session)
+        review=historical_analysis(session,profile.id)
+        st.subheader('Evidence review, not treatment')
+        for item in review['signals']:
+            changed=[r for r in item['observations'] if r['flagged']]
+            if changed:
+                st.write(item['metric'],item['source'],changed)
+                st.caption(f"Method: {item['method']} / {item['samples']} prior samples on {item['days']} observed days. Reference before {item['reference_before']}.")
+        st.info('Review questions: Were units and timestamps correct? Is the source verified? Did posture, activity, device or recording protocol change? Are days missing? Statistical change alone does not identify a cause.')
+        st.caption('For material findings, involve qualified mission/research or healthcare staff. THEIA supplies no treatment, psychological diagnosis or autonomous operational decision.')
+        for name,context in hazard_inventory(session,profile.id).items():
+            with st.expander(name):
+                st.write(context['note']);st.caption(f"Recorded context: {context['context_records']} / sources: {context['recorded_sources']}")
+                st.link_button('NASA research context',context['url'])
     path = ROOT_DIR / "config" / "health_rules.json"
     with path.open("r", encoding="utf-8") as file:
         entries = json.load(file)

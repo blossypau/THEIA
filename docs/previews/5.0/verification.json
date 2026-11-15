@@ -1,0 +1,18 @@
+{
+  "automatic_100_measurements": true,
+  "five_hazards_connected": true,
+  "local_outbox_sync": true,
+  "anatomy_826_isolation_selection": true,
+  "public_ct_rendered_inside_theia": true,
+  "pdf_values_context_hrv": true,
+  "reset_preserves_normal_storage": true,
+  "mobile": [
+    390,
+    390
+  ],
+  "tablet": [
+    724,
+    724
+  ],
+  "javascript_errors": []
+}

@@ -1,0 +1,19 @@
+{
+  "theia": "5.0",
+  "baseline": "independent historical reference v1; exact-source history strictly before evaluated window",
+  "legacy_engine": "5.0.0 source-separated retrospective analysis; archived 4.2.0 results retained",
+  "ohif": {
+    "repository": "https://github.com/OHIF/Viewers",
+    "revision": "d493d1cb7676d7259761f9669b4f38d3fefe38bd",
+    "build_path": "third_party/OHIF-Viewers/platform/app/dist",
+    "node": ">=24",
+    "package_manager": "pnpm@12.8.1",
+    "note": "External build not vendored. Use upstream installation/build instructions at this revision; THEIA overrides app-config with local-only DICOM configuration."
+  },
+  "anatomy": {
+    "identifiers": 826,
+    "license": "CC BY-SA 4.0; see assets/anatomy/THEIA-NOTICE.md"
+  },
+  "python_lock": "requirements-lock-windows-py314.txt",
+  "public_dicom_manifest": "assets/testdata/ohif-gray-ct.json"
+}

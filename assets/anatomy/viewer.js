@@ -104,7 +104,7 @@ function init() {
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
     const ambientLight = new THREE.AmbientLight(0x82dbea, 1.1);
@@ -610,8 +610,12 @@ function resetAllObjects() {
     closeInfoPanel();
 }
 
-function animate() {
+let lastRenderTime = 0;
+function animate(now = 0) {
     requestAnimationFrame(animate);
+    // Preserve all 826 meshes and controls; avoid rendering hidden tabs or >30 frames/s.
+    if (document.hidden || now - lastRenderTime < 1000 / 30) return;
+    lastRenderTime = now;
     controls.update();
     TWEEN.update();
     renderer.render(scene, camera);

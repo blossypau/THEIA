@@ -10,7 +10,7 @@ from database.measurements import measurement_frame
 from database.models import ScientificAnalysisRecord
 from utils.measurement_schema import MeasurementPayload
 
-VERSION = "4.2.0"
+VERSION = "5.0.0"
 LIMITATIONS = "Experimental statistics, not a validated medical AI. Associations are not causal. Baselines include the selected period. Mixed sources are summarized separately."
 
 
@@ -73,12 +73,12 @@ def analyze(session, astronaut_id, start=None, end=None, persist=True):
             "explanation": "Absolute z-score > 2.5; Isolation Forest evaluated from 20 samples with at least 5 distinct values. Flags indicate statistical outliers only."}
     if not valid.empty:
         valid["day"] = valid.timestamp.dt.floor("D")
-        for cohort, group in valid.groupby("cohort"):
+        for (cohort, source), group in valid.groupby(["cohort", "source"]):
             daily = group.pivot_table(index="day", columns="metric_name", values="value", aggfunc="mean")
             for left, right in combinations(daily.columns, 2):
                 paired = daily[[left, right]].dropna()
                 if len(paired) >= 5 and (paired.std() > 0).all():
-                    result["relationships"].append({"left": left, "right": right, "cohort": cohort, "paired_days": len(paired),
+                    result["relationships"].append({"left": left, "right": right, "cohort": cohort, "source": source, "paired_days": len(paired),
                         "pearson_r": float(paired[left].corr(paired[right])), "alignment": "UTC daily mean; exploratory, not causal"})
     if persist:
         session.add(ScientificAnalysisRecord(analysis_type="integrated_health", model_name="THEIA statistical engine", version=VERSION,

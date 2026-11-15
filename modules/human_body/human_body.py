@@ -114,6 +114,8 @@ def render_human_body():
                     if not view['metrics']:st.info('No relevant direct physiological indicators configured.')
             if identifier:
                 st.info(CONTEXT[structure_system(identifier)])
+                st.caption('Altered gravity is educational context for bone and muscle research. This atlas does not detect bone loss, atrophy, fluid shifts or balance impairment.')
+                st.link_button('NASA: gravity fields and human adaptation','https://www.nasa.gov/hrp/hazard-gravity-fields/')
             with st.expander('Model attribution and scientific context'):
                 st.caption('Z-Anatomy model adapted by hpfrei; CC BY-SA 4.0. THEIA holographic rendering and integration adaptations use the same license. The model is anatomical; source colors and opacity are visualization choices, not findings.')
                 st.link_button('NASA human research context','https://www.nasa.gov/hrp/')

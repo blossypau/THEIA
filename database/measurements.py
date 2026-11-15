@@ -1,6 +1,7 @@
 """Shared validated measurement access. Times are stored as naive UTC."""
 from datetime import datetime, timezone
 import hashlib
+import json
 
 import pandas as pd
 from sqlalchemy.exc import IntegrityError
@@ -34,6 +35,8 @@ def insert_measurement(session, astronaut_id, payload, commit=True):
     payload = payload if isinstance(payload, MeasurementPayload) else MeasurementPayload.model_validate(payload)
     if session.info.get('scenario'):
         payload = MeasurementPayload.model_validate(payload.model_dump() | {'source':'SIMULATED_DATA'})
+    if payload.source == 'REAL_SENSOR_DATA' and not session.info.get('verified_sensor_capture'):
+        raise ValueError('Sensor provenance requires an active acquisition connector; manual entry is not verified sensor capture')
     if session.get(AstronautProfile, astronaut_id) is None:
         raise ValueError("Astronaut profile does not exist")
     existing = query_measurements(session, astronaut_id, payload.metric_name).filter_by(timestamp=payload.timestamp).first()
@@ -50,6 +53,11 @@ def insert_measurement(session, astronaut_id, payload, commit=True):
         with session.begin_nested():
             session.add(record)
             session.flush()
+            from database.models import MeasurementProvenance
+            meta=session.info.get('acquisition_provenance',{})
+            session.add(MeasurementProvenance(measurement_id=record.id,connector=meta.get('connector','manual-or-legacy-api'),
+                instrument=meta.get('instrument','Declared source; no device verified'),receipt=meta.get('receipt',identity),
+                capture_verified=bool(session.info.get('verified_sensor_capture')),details=json.dumps(meta)))
     except IntegrityError:
         existing = query_measurements(session, astronaut_id, payload.metric_name).filter_by(timestamp=payload.timestamp).first()
         if existing is None or existing.value != payload.value or existing.unit != payload.unit or existing.source != payload.source:
@@ -60,16 +68,23 @@ def insert_measurement(session, astronaut_id, payload, commit=True):
     return record
 
 
-def update_measurement(session, astronaut_id, record_id, changes):
+def update_measurement(session, astronaut_id, record_id, changes, actor='local operator', reason='Manual correction'):
     row = query_measurements(session, astronaut_id).filter_by(id=record_id).one()
     data = {key: getattr(row, key) for key in MeasurementPayload.model_fields}
+    before=json.dumps(data,default=str,sort_keys=True)
     data.update(changes)
     payload = MeasurementPayload.model_validate(data)
+    if payload.source != row.source:
+        raise ValueError('A correction cannot relabel acquisition provenance')
+    if not reason.strip() or not actor.strip():raise ValueError('Correction requires an actor and reason')
     conflict = query_measurements(session, astronaut_id, payload.metric_name).filter_by(timestamp=payload.timestamp).filter(HealthMeasurement.id != record_id).first()
     if conflict:
         raise ValueError("Another measurement already exists at that timestamp")
     for key, value in payload.model_dump().items():
         setattr(row, key, value)
     row.identity_key = hashlib.sha256(f"{astronaut_id}:{payload.metric_name}:{payload.timestamp.isoformat()}".encode()).hexdigest()
+    from database.models import MeasurementRevision
+    session.add(MeasurementRevision(astronaut_id=astronaut_id,measurement_id=row.id,before_json=before,
+        after_json=json.dumps(payload.model_dump(),default=str,sort_keys=True),actor=actor[:100],reason=reason))
     session.commit()
     return row

@@ -2,6 +2,33 @@
 
 THEIA is a modular astronaut health monitoring and self-assessment platform designed for long-duration missions. It combines local health tracking, trend analysis, rule-based anomaly detection, and a modern dashboard for crew health awareness.
 
+## THEIA 5.0: reproducible experimental mission
+
+This release adds independent historical references, auditable acquisition and five-hazard mission context. It is an experimental research prototype, not a diagnostic system. Physical sensors have not been validated. NASA references are distinguished from the public NASA POWER Earth-weather dataset and from simulated spacecraft conditions.
+
+On Windows with CPython 3.14:
+
+```powershell
+py -3.14 -m venv .venv
+.venv\Scripts\python.exe -m pip install --upgrade pip==26.3
+.venv\Scripts\python.exe -m pip install -r requirements-lock-windows-py314.txt
+.venv\Scripts\python.exe scripts/start_theia_services.py
+```
+
+Open the THEIA URL printed by the launcher (normally http://localhost:8507). OHIF requires the external build pinned in `config/integration-versions.json`; an occupied port alone is never accepted as a ready viewer. Existing unrelated processes are preserved. See the existing OHIF installation instructions below.
+
+For a complete demonstration: enable **Synthetic scenario workspace**, open **Mission Scenario Mode**, choose a replay, set **Replay days per tick**, and click **Start automatic scenario**. Pause/resume/stop work across pages while this browser workspace is open. Twenty replay days add 100 measurements and 180 explicitly simulated context observations to the 150 seeded measurements. Inspect Mission Overview, Intelligence Center, Scientific Analysis > Mission context & hazards, anatomy, Timeline and the scenario PDF. The final artificial deviation is intentional; no simulated association represents a physiological model. **Reset synthetic scenario** restores the isolated seed and clears its local test mirror, preserving normal records.
+
+Data Management offers explicitly authorized stable-folder CSV polling, HTTPS JSON polling and bounded Bluetooth HRS collection. Folder/API imports remain `IMPORTED_DATA`. Only an actual BLE notification during an established connection can obtain captured-sensor provenance. Backend behavior is mock-tested; no physical device was tested. For unattended local polling:
+
+```powershell
+.venv\Scripts\python.exe scripts/acquire_measurements.py --source folder --address C:\authorized\measurements --profile 1
+```
+
+The target profile must already exist. Stop with Ctrl+C. CSV columns: `metric_name,value,unit,timestamp`, optionally `data_quality_status,mission_context,notes`; use UTC timestamps and a final newline. Files must remain stable over consecutive polls and are never moved/deleted. API responses use a JSON list with the same fields; optional credentials come from an environment variable, never from an embedded URL. No universal wearable/API protocol is claimed.
+
+Run `python -m pytest -q` in the virtual environment. Browser verification additionally needs Playwright Chromium and pypdf: `python scripts/verify_mission_demo.py --url http://127.0.0.1:8507`. It edits only a new isolated synthetic workspace and renders the verified public CT inside OHIF. Screenshots and detailed capabilities/limits: [THEIA 5.0 implementation](docs/THEIA5_IMPLEMENTATION.md).
+
 ## Features
 
 - Local SQLite database with SQLAlchemy models

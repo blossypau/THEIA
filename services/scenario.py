@@ -18,6 +18,9 @@ PROFILES=[('Astra / Recovery scenario',MISSION_ID),('Mira / Workload scenario','
 
 
 def seed_scenario(session):
+    from database.models import SchemaMigration
+    if session.get(SchemaMigration,'5.0-additive-context-provenance') is None:
+        session.add(SchemaMigration(version='5.0-additive-context-provenance'))
     for index,(name,mission) in enumerate(PROFILES):
         profile=AstronautProfile(name=name,mission_id=mission,mission_day=30,role='Synthetic demonstration profile',notes='THEIA_SCENARIO_V1: exclusively synthetic observations')
         session.add(profile);session.flush()
@@ -66,6 +69,10 @@ def reset_scenario(session):
     for table in reversed(Base.metadata.sorted_tables):
         session.execute(table.delete())
     session.flush();session.expunge_all();seed_scenario(session)
+    from services.retention import cleanup_scenario_artifacts
+    cleanup_scenario_artifacts(session,older_than_days=0)
+    from services.test_sync import reset_mirror
+    reset_mirror(session)
 
 
 def add_scenario_measurement(session, astronaut_id, metric='fatigue', value=80):

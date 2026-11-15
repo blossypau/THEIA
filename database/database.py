@@ -58,6 +58,9 @@ def init_db() -> None:
             connection.execute(text("ALTER TABLE health_measurements ADD COLUMN identity_key VARCHAR(64)"))
             connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_measurement_identity ON health_measurements(identity_key)"))
     Base.metadata.create_all(bind=engine)
+    # Additive, versioned migration: existing measurements and report rows are retained.
+    with engine.begin() as connection:
+        connection.execute(text("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES ('5.0-additive-context-provenance', CURRENT_TIMESTAMP)"))
 
 
 def get_session():
