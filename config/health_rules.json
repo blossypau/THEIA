@@ -1,0 +1,29 @@
+[
+  {
+    "topic": "Sleep and recovery",
+    "body_system": "Neurological and vestibular",
+    "related_indicators": ["sleep_hours", "fatigue", "mood"],
+    "explanation": "Sleep quality influences alertness, mood regulation, and recovery for long-duration missions.",
+    "preventive_info": "Prioritize consistent rest opportunities and evaluate patterns when sleep is below mission thresholds.",
+    "source": "NASA Human Research Program guidance and crew health education materials.",
+    "last_review_date": "2025-01-15"
+  },
+  {
+    "topic": "Cardiovascular strain",
+    "body_system": "Cardiovascular",
+    "related_indicators": ["heart_rate", "blood_pressure", "oxygen_saturation"],
+    "explanation": "Elevated heart rate and altered pressure patterns may reflect exertion, recovery needs, or environmental stressors.",
+    "preventive_info": "Review activity plans, hydration, and recovery windows when trends deviate from an astronaut's usual range.",
+    "source": "Operational medicine and human factors review references.",
+    "last_review_date": "2025-02-11"
+  },
+  {
+    "topic": "Hydration and metabolic balance",
+    "body_system": "Metabolic",
+    "related_indicators": ["blood_glucose", "hydration", "energy"],
+    "explanation": "Energy and glucose stability depend on nutrition timing, hydration, and workload balance.",
+    "preventive_info": "Track meals and fluids with a consistent routine and note unusual fatigue or mood shifts.",
+    "source": "Crew nutrition monitoring and operational health education.",
+    "last_review_date": "2025-03-07"
+  }
+]

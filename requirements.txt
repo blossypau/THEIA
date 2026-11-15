@@ -1,0 +1,9 @@
+streamlit>=1.37.0
+sqlalchemy>=2.0.31
+pandas>=2.2.0
+numpy>=1.26.0
+plotly>=5.22.0
+scikit-learn>=1.4.2
+reportlab>=4.2.0
+pytest>=8.3.0
+bleak>=0.20.0
