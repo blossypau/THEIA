@@ -10,7 +10,7 @@ from database.measurements import measurement_frame
 from database.models import ScientificAnalysisRecord
 from utils.measurement_schema import MeasurementPayload
 
-VERSION = "3.0.1"
+VERSION = "4.1.1"
 LIMITATIONS = "Experimental statistics, not a validated medical AI. Associations are not causal. Baselines include the selected period. Mixed sources are summarized separately."
 
 
@@ -46,12 +46,25 @@ def analyze(session, astronaut_id, start=None, end=None, persist=True):
         elapsed = (group.timestamp - group.timestamp.min()).dt.total_seconds().to_numpy() / 86400
         slope = float(np.polyfit(elapsed, values, 1)[0]) if n >= 3 and np.ptp(elapsed) > 0 else None
         zscores = np.abs((values - mean) / std) if std > 0 else np.zeros(n)
-        predictions = IsolationForest(random_state=42, contamination="auto").fit_predict(values.reshape(-1, 1)) if n >= 20 and std > 0 and len(np.unique(values)) >= 5 else np.ones(n)
-        anomalies = [{"id": int(row.id), "timestamp": row.timestamp.isoformat(), "value": float(row.value), "z_score": float(z),
-                      "methods": (["z_score"] if z > 2.5 else []) + (["isolation_forest"] if prediction == -1 else [])}
-                     for (_, row), z, prediction in zip(group.iterrows(), zscores, predictions) if z > 2.5 or prediction == -1]
+        model = None
+        if n >= 20 and std > 0 and len(np.unique(values)) >= 5:
+            model = IsolationForest(random_state=42, contamination="auto").fit(values.reshape(-1,1))
+        predictions = model.predict(values.reshape(-1,1)) if model is not None else np.ones(n)
+        isolation_scores = model.decision_function(values.reshape(-1,1)) if model is not None else [None]*n
+        anomalies = []
+        for (_, row), z, prediction, isolation_score in zip(group.iterrows(), zscores, predictions, isolation_scores):
+            if z <= 2.5 and prediction != -1:
+                continue
+            deviation = float(row.value)-mean
+            methods = (["z_score"] if z>2.5 else []) + (["isolation_forest"] if prediction==-1 else [])
+            anomalies.append({"id":int(row.id),"timestamp":row.timestamp.isoformat(),"value":float(row.value),"unit":row.unit,
+                "z_score":float(z),"methods":methods,"baseline_mean":mean,"baseline_std":std,"deviation":deviation,
+                "samples":n,"input_cohort":f"{metric}:{cohort}","source":row.source,"quality":row.data_quality_status,
+                "isolation_decision_score":float(isolation_score) if isolation_score is not None else None,
+                "explanation":f"Observed {float(row.value):.3f} {row.unit}; {abs(deviation):.3f} {row.unit} {'above' if deviation>=0 else 'below'} the selected-period mean. Absolute z-score {float(z):.3f}. This is a statistical pattern, not a diagnosis.",
+                "limitations":"Reference includes this observation. Unsupervised flags depend on available samples and parameters; no clinical risk probability is estimated."})
         key = f"{metric}:{cohort}"
-        result["metrics"][key] = {"metric": metric, "cohort": cohort, "samples": n, "unit": group.unit.iloc[0],
+        result["metrics"][key] = {"metric": metric, "cohort": cohort, "measurement_ids": [int(value) for value in group.id], "samples": n, "unit": group.unit.iloc[0],
             "mean": mean, "median": float(np.median(values)), "std": std, "min": float(values.min()), "max": float(values.max()),
             "slope_per_day": slope, "recent_change": float(values[-1] - values[-2]) if n > 1 else None,
             "latest": float(values[-1]), "latest_timestamp": group.timestamp.iloc[-1].isoformat(),

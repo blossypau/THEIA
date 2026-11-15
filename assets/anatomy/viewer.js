@@ -12,6 +12,37 @@ let movedObjects = new Map(); // uuid -> { object, material, position, underneat
 let originalPositions = new Map(); // uuid -> original position
 let visibleTypes = new Set(['muscle', 'bone']); // Currently visible types
 let axesHelper;
+let pendingTheiaCommand = null;
+let suppressBridge = false;
+let isolationActive = false;
+let groupVisibility = null;
+function applyTheiaCommand(command) {
+    if (!clickableObjects.length) { pendingTheiaCommand=command; return; }
+    suppressBridge=true;
+    try {
+        if (Array.isArray(command.identifiers)) {
+            groupVisibility=new Set(command.identifiers);
+            isolationActive=false;
+            document.getElementById('isolate-btn').textContent='Isolate selected';
+            clickableObjects.forEach(object=>{object.visible=groupVisibility.has(object.userData.theiaIdentifier);});
+        }
+        const object=clickableObjects.find(object=>object.userData.theiaIdentifier===command.identifier && object.visible);
+        if (object && object!==selectedObject) {
+            if (selectedObject) unhighlightObject(selectedObject);
+            selectedObject=object; highlightObject(object);
+            const target=new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3());
+            const shift=target.clone().sub(controls.target);
+            new TWEEN.Tween(controls.target).to({x:target.x,y:target.y,z:target.z},350).start();
+            const destination=camera.position.clone().add(shift);
+            new TWEEN.Tween(camera.position).to({x:destination.x,y:destination.y,z:destination.z},350).start();
+        } else if (!command.identifier) clearSelection();
+    } finally { suppressBridge=false; }
+}
+window.addEventListener('message',event=>{
+    const parentOrigin=new URL(document.referrer || location.href).origin;
+    if (event.source!==window.parent || event.origin!==parentOrigin || event.data?.type!=='THEIA_VIEWER_COMMAND') return;
+    applyTheiaCommand(event.data.payload || {});
+});
 
 function getViewportDimensions() {
     const fallbackWidth = 960;
@@ -125,9 +156,9 @@ function init() {
 
     document.getElementById('isolate-btn').addEventListener('click', () => {
         if (!selectedObject) { document.getElementById('model-status').textContent = 'Select a structure before isolating it'; return; }
-        const isolated = clickableObjects.some(obj => !obj.visible);
-        clickableObjects.forEach(obj => { obj.visible = isolated || obj === selectedObject; });
-        document.getElementById('isolate-btn').textContent = isolated ? 'Isolate selected' : 'Show all structures';
+        isolationActive = !isolationActive;
+        clickableObjects.forEach(obj => { obj.visible = isolationActive ? obj === selectedObject : (!groupVisibility || groupVisibility.has(obj.userData.theiaIdentifier)); });
+        document.getElementById('isolate-btn').textContent = isolationActive ? 'Show all structures' : 'Isolate selected';
     });
     document.getElementById('opacity-control').addEventListener('input', event => {
         const opacity = Number(event.target.value);
@@ -193,6 +224,7 @@ function loadModel() {
                     meshNames.push(child.name || child.geometry?.uuid || 'unnamed-mesh');
                 }
             });
+            if (pendingTheiaCommand) { applyTheiaCommand(pendingTheiaCommand); pendingTheiaCommand=null; }
             window.__THEIA_MODEL_DEBUG__ = { meshNames, count: meshNames.length };
             document.getElementById('model-status').textContent = `${meshNames.length} structures loaded`;
             console.log('Model loaded successfully', meshNames.slice(0, 50));
@@ -386,6 +418,7 @@ function restoreObject(uuid, shouldHighlight = false) {
 }
 
 function notifyTheiaBridge(objectName, action = 'select', identifier = '', system = 'Musculoskeletal') {
+    if (suppressBridge) return;
     const normalizedName = String(objectName || '').trim();
     const payload = {
         identifier: action === 'selection-cleared' ? '' : (identifier || normalizedName || 'unknown-structure'),
@@ -547,7 +580,8 @@ function resetAllObjects() {
     document.getElementById('toggle-muscles').classList.add('active');
     document.getElementById('toggle-bones').classList.add('active');
     document.getElementById('wireframe-btn').setAttribute('aria-pressed','false');
-    clickableObjects.forEach(obj => { obj.visible = true; obj.material.opacity = .48; obj.material.transparent = true; obj.material.depthWrite = false; obj.material.wireframe = false; });
+    isolationActive=false;
+    clickableObjects.forEach(obj => { obj.visible = !groupVisibility || groupVisibility.has(obj.userData.theiaIdentifier); obj.material.opacity = .48; obj.material.transparent = true; obj.material.depthWrite = false; obj.material.wireframe = false; });
     document.getElementById('opacity-control').value = .48;
     document.getElementById('isolate-btn').textContent = 'Isolate selected';
     clearSelection();

@@ -27,7 +27,7 @@ def generate_pdf_report(session=None, output_path=None, astronaut_id=None, start
             raise ValueError("Unknown astronaut")
         analysis = analyze(session, astronaut.id, start, end)
         frame = measurement_frame(session, astronaut.id, start=start, end=end)
-        output_path = Path(output_path) if output_path else ROOT_DIR / "data/processed" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f") / "theia_report.pdf"
+        output_path = Path(output_path) if output_path else (Path(session.info["scenario_dir"]) / "reports" if session.info.get("scenario") else ROOT_DIR / "data/processed") / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f") / "theia_report.pdf"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         styles = getSampleStyleSheet()
         story: list[Any] = []
@@ -90,7 +90,8 @@ def generate_pdf_report(session=None, output_path=None, astronaut_id=None, start
 def render_reports():
     with SessionLocal() as session:
         profile_id = ensure_astronaut(session).id
-    if st.session_state.get('report_profile_id') != profile_id:
+        current_snapshot = analyze(session,profile_id)["fingerprint"]
+    if st.session_state.get('report_profile_id') != profile_id or st.session_state.get('report_snapshot') != current_snapshot:
         st.session_state.pop('report_bytes', None)
     st.caption("Mission Reports workspace")
     st.caption("PDF uses the same versioned statistical snapshot as Dashboard, Intelligence Center and anatomy panels.")
@@ -98,6 +99,7 @@ def render_reports():
         path = generate_pdf_report()
         st.session_state['report_bytes'] = path.read_bytes()
         st.session_state['report_profile_id'] = profile_id
+        st.session_state['report_snapshot'] = current_snapshot
         st.success("Report generated and registered locally.")
     if 'report_bytes' in st.session_state:
         st.download_button("Download report", st.session_state['report_bytes'], "theia_report.pdf", "application/pdf")

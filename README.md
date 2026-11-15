@@ -114,3 +114,28 @@ OHIF uses shared HTTP readiness checks and a discovered free port if 3001 contai
 The UI stays on Streamlit with native controls, Plotly and the existing local Three.js runtime, avoiding a second frontend application and duplicated analysis. CSS tokens, reusable visual primitives, responsive layout and reduced-motion support are in `modules/ui/`. Preview screenshots under `docs/previews/` use isolated synthetic profiles, not private crew data. Run `.venv\Scripts\python.exe -m pytest -q` for the full test suite.
 
 Visual service contract: `GET http://127.0.0.1:3004/theia/visual-health` returns `{ "service": "theia-visuals", "version": 4, "model": true|false }`. It exposes no astronaut measurements. All other routes serve only the licensed assets directory; unknown assets return HTTP 404.
+
+## THEIA 4.1 - Reproducible Mission Scenario Mode
+
+Start THEIA normally:
+
+```powershell
+.venv\Scripts\python.exe scripts\start_theia_services.py
+```
+
+Open http://localhost:8507. Enable **Synthetic scenario workspace** in the sidebar, then open **Mission Scenario Mode**. Each browser session receives a separate SQLite file under `tmp/scenarios/<UUID>/scenario.sqlite3`; normal mission sessions keep their original storage. No migration or reset touches the normal database. Two fictional profiles are generated from a deterministic January 2026 dataset (30 days, 150 observations per profile, all labeled `SIMULATED_DATA`). Select either profile using **Active astronaut**.
+
+To demonstrate the complete flow:
+
+1. Keep the scenario signal on **fatigue**, value **80**, and click **Register synthetic measurement**.
+2. The selected profile now has 151 observations. Review the chart and snapshot fingerprint.
+3. Open **View Dashboard**, then **Health Dashboard**; use **All records**, because this reproducible reference period is January 2026.
+4. Open **Explain statistical flags**, select **fatigue**, and inspect **Statistical observation to explain**. The latest synthetic value shows its observed value, date, mean, deviation, reference SD, z-score/Isolation Forest methods, source, quality, exact input rows and limitations.
+5. Open **Human Body Explorer**, select an available real model structure, or use **Previous structure / Next structure**. The Python selector now updates the 3D highlight, and a model click updates Python panels. The system filter uses only structures present in the GLB; musculoskeletal fatigue/sleep associations are contextual self-reports, not measurements of bone or muscle loss.
+6. Return to **Mission Scenario Mode**, click **Generate scenario PDF**, then download it. The report uses the same shared snapshot and is stored in the isolated scenario directory.
+7. Click **Reset synthetic scenario** to restore both synthetic profiles and their derived records to the deterministic initial state. The reset verifies the storage identity and refuses unknown profiles or non-synthetic measurements.
+8. Disable **Synthetic scenario workspace** to return to the original database. Synthetic PDF bytes and selection state are cleared at the workspace boundary.
+
+CSV measurement import is disabled inside this exclusively synthetic workspace. Generic measurement entry there forces `SIMULATED_DATA`. Session databases are independent; resetting one does not reset another. The image references guide layout only: THEIA does not simulate diagnostic MRI, genomics, medical risk probabilities or unavailable anatomical structures.
+
+The explainable engine version is 4.1.1; the statistical algorithms retain their existing parameters. Baselines include the flagged observation and selected period, and Isolation Forest can flag synthetic distribution patterns: these are not diagnoses. `VALID` denotes range/unit/schema validation, not clinical verification or sensor calibration. Demonstration screenshots are under `docs/previews/4.1/` and use synthetic records only.

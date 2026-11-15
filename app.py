@@ -35,7 +35,7 @@ from database.repository import active_astronaut_id
 from modules.ui.theme import render_page_header
 
 PAGES = {
-    "Mission Overview": "mission_overview", "Health Dashboard": "health_dashboard",
+    "Mission Overview": "mission_overview", "Mission Scenario Mode": "scenario", "Health Dashboard": "health_dashboard",
     "Health Monitoring": "health_monitoring", "Data Management": "data_management",
     "Human Body Explorer": "human_body", "Medical Visualization Lab": "medical_visualization_lab",
     "NASA Data Hub": "nasa_data_hub", "THEIA Intelligence Center": "intelligence_center",
@@ -46,7 +46,8 @@ PAGES = {
 
 
 def init_application():
-    init_db()
+    if not st.session_state.get('scenario_mode'):
+        init_db()
     with SessionLocal() as session:
         ensure_astronaut(session)
 
@@ -68,9 +69,16 @@ def _profile_changed():
             st.session_state.pop(key, None)
 
 
+def _workspace_changed():
+    _profile_changed()
+    for key in ['active_astronaut','active_structure','last_anatomy_event','anatomy_structure','anatomy_command_revision','_anatomy_pending_sync','scenario_result','scenario_pdf_bytes','scenario_pdf_profile']:
+        st.session_state.pop(key,None)
+
+
 def render_sidebar():
     with st.sidebar:
         st.markdown("<div class='brand-shell'><div class='brand-mark'><div class='brand-orbit'>✧</div><div class='brand-name'>THEIA</div></div><div class='brand-caption'>SPACE HEALTH COMMAND CENTER</div></div>", unsafe_allow_html=True)
+        st.toggle('Synthetic scenario workspace',key='scenario_mode',on_change=_workspace_changed,help='A separate SQLite database for this browser session. No real measurements are edited or reset.')
         with SessionLocal() as session:
             profiles = session.query(AstronautProfile).order_by(AstronautProfile.id).all()
             labels = {p.id: p.name for p in profiles}
@@ -78,7 +86,7 @@ def render_sidebar():
         st.caption("WORKSPACE / MISSION OPERATIONS")
         selected = st.radio("Navigation", list(PAGES), label_visibility="collapsed", key="navigation")
         st.divider()
-        st.caption("THEIA 4.0 · LOCAL RESEARCH BUILD")
+        st.caption("THEIA 4.1 · LOCAL RESEARCH BUILD")
         st.caption("Experimental analytics. No remote synchronization inferred.")
         return PAGES[selected]
 
@@ -104,15 +112,18 @@ def render_settings():
         st.success("Synthetic demo loaded only if the database contained no measurements.")
 
 
-def main():
+def render_application():
     apply_theia_theme()
     init_application()
     page_key = render_sidebar()
     token = active_astronaut_id.set(st.session_state['active_astronaut'])
     try:
         render_top_bar()
+        if st.session_state.get('scenario_mode'):
+            st.warning('SYNTHETIC SCENARIO WORKSPACE · Isolated SQLite · All recorded measurements are simulated')
         from modules.dashboard.dashboard import render_health_dashboard
-        pages = {"mission_overview": render_dashboard, "health_dashboard": render_health_dashboard,
+        from modules.scenario import render_scenario
+        pages = {"scenario": render_scenario, "mission_overview": render_dashboard, "health_dashboard": render_health_dashboard,
             "health_monitoring": render_health_monitoring, "data_management": render_data_management,
             "human_body": render_human_body, "medical_visualization_lab": render_medical_visualization_lab,
             "nasa_data_hub": render_nasa_data_hub, "intelligence_center": render_intelligence_center,
@@ -127,6 +138,22 @@ def main():
         st.markdown(f"<div class='workspace-footer'>THEIA / SPACE HEALTH COMMAND &nbsp; · &nbsp; {escape(st.session_state['navigation'])} &nbsp; · &nbsp; EXPERIMENTAL RESEARCH</div>",unsafe_allow_html=True)
     finally:
         active_astronaut_id.reset(token)
+
+
+def main():
+    from database.database import session_factory_override
+    from uuid import uuid4
+    factory = None
+    if st.session_state.get('scenario_mode'):
+        from services.scenario import scenario_factory
+        if 'scenario_workspace_id' not in st.session_state:
+            st.session_state['scenario_workspace_id'] = str(uuid4())
+        factory = scenario_factory(st.session_state['scenario_workspace_id'])
+    workspace_token = session_factory_override.set(factory)
+    try:
+        render_application()
+    finally:
+        session_factory_override.reset(workspace_token)
 
 
 if __name__ == '__main__': main()

@@ -23,7 +23,7 @@ def render_data_management():
         with st.form("measurement_entry_form"):
             value = st.number_input(f"Value ({unit})", min_value=0.0, step=0.1, key="entry_value")
             timestamp = st.datetime_input("Timestamp (UTC)", value=datetime.now(timezone.utc).replace(tzinfo=None), key="entry_timestamp")
-            source = st.selectbox("Source", ["MANUALLY_ENTERED_DATA", "SIMULATED_DATA", "REAL_SENSOR_DATA"], key="entry_source")
+            source = st.selectbox("Source", ["SIMULATED_DATA"] if session.info.get("scenario") else ["MANUALLY_ENTERED_DATA", "SIMULATED_DATA", "REAL_SENSOR_DATA"], key="entry_source", disabled=bool(session.info.get("scenario")))
             context = st.text_input("Mission context", key="entry_context")
             notes = st.text_area("Notes", key="entry_notes")
             submitted = st.form_submit_button("Save measurement", key="save_measurement")

@@ -86,6 +86,12 @@
         if (element) element.textContent = message;
       }
 
+      let lastCommand = '';
+      let pendingCommand = null;
+      function sendViewerCommand() {
+        if (pendingCommand) { document.getElementById('viewer-frame').contentWindow.postMessage({type:'THEIA_VIEWER_COMMAND',payload:pendingCommand}, VALID_ORIGIN); setStatus(pendingCommand.identifier ? `Selected via controls: ${pendingCommand.identifier}` : 'Select an anatomical structure.'); }
+      }
+      document.getElementById('viewer-frame').addEventListener('load',sendViewerCommand);
       window.addEventListener('message', function (event) {
         if (event.source === window.parent && event.data?.type === 'streamlit:render') {
           const requested = event.data.args?.viewer_url;
@@ -97,6 +103,10 @@
               if (frame.src !== url.href) frame.src = url.href;
             }
           }
+          const command = {identifier:event.data.args?.selected_identifier || null, identifiers:event.data.args?.visible_identifiers || null, revision:event.data.args?.command_revision || 0};
+          const encoded = JSON.stringify({identifiers:command.identifiers, revision:command.revision});
+          pendingCommand=command;
+          if (encoded !== lastCommand) { lastCommand=encoded; sendViewerCommand(); }
           return;
         }
         if (event.origin !== VALID_ORIGIN || event.source !== document.getElementById('viewer-frame').contentWindow) return;

@@ -44,6 +44,8 @@ def render_intelligence_center():
                 with st.expander('Paired sample counts'):st.dataframe(relationships,hide_index=True)
             else:
                 st.info('At least five paired UTC days with variable values are required. No relationship is inferred from unpaired data.')
+        from modules.ui.explanations import render_explanations
+        render_explanations(session,astronaut.id,result,metric)
         with st.expander('Methods, quality and reproducibility'):
             st.json({'snapshot':result['fingerprint'],'quality':result['quality'],'period':result['period'],'parameters':result['parameters']})
             st.caption(result['limitations'])

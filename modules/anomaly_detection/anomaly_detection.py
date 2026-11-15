@@ -7,7 +7,7 @@ from utils.measurement_schema import ALLOWED_METRICS
 
 def render_anomaly_detection():
     st.caption("Intelligent analysis workspace")
-    metric = st.selectbox("Metric to inspect", sorted(ALLOWED_METRICS), key="anomaly_metric")
+    metric = st.selectbox("Metric to inspect", sorted(ALLOWED_METRICS), index=sorted(ALLOWED_METRICS).index("heart_rate"), key="anomaly_metric")
     with SessionLocal() as session:
         view = render_analysis(session, ensure_astronaut(session).id, metric, "anomaly")
         for item in view["baselines"]:
