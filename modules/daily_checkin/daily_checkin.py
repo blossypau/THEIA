@@ -4,29 +4,36 @@ import pandas as pd
 import streamlit as st
 
 from database.database import SessionLocal
+from database.repository import ensure_astronaut
 from database.models import DailyCheckin
 from database.repository import get_daily_checkins
+from modules.ui.theme import apply_theia_theme, render_page_header
 
 
-def render_daily_checkin():
-    st.subheader("Daily Check-In")
+def render_daily_checkin() -> None:
+    apply_theia_theme()
+    render_page_header("Daily check-in", "Behavioral readiness • rest quality • mission self-reporting")
+
     session = SessionLocal()
     try:
         with st.form("daily_checkin_form"):
-            st.write("Record your daily status")
-            sleep_duration = st.number_input("Sleep duration (hours)", min_value=0.0, max_value=18.0, step=0.5)
+            st.markdown("<div class='section-tag'>Mission self-report</div>", unsafe_allow_html=True)
+            sleep_duration = st.number_input("Sleep duration (hours)", min_value=0.0, max_value=18.0, step=0.5, value=7.5)
             sleep_quality = st.slider("Sleep quality (1-5)", 1, 5, 3)
-            mood = st.slider("Mood (0-100)", 0, 100, 60)
-            energy = st.slider("Energy (0-100)", 0, 100, 65)
-            fatigue = st.slider("Fatigue (0-100)", 0, 100, 25)
-            effort = st.slider("Perceived physical effort (0-100)", 0, 100, 40)
+            mood = st.slider("Mood (0-100)", 0, 100, 72)
+            energy = st.slider("Energy (0-100)", 0, 100, 68)
+            fatigue = st.slider("Fatigue (0-100)", 0, 100, 28)
+            effort = st.slider("Perceived physical effort (0-100)", 0, 100, 44)
             notes = st.text_area("General observations")
             symptoms = st.text_area("Optional symptoms")
+
+            progress = sum(value > 0 for value in [sleep_duration, sleep_quality, mood, energy, fatigue, effort])
+            st.progress(progress / 6)
             submitted = st.form_submit_button("Save check-in")
 
         if submitted:
             checkin = DailyCheckin(
-                astronaut_id=1,
+                astronaut_id=ensure_astronaut(session).id,
                 mission_day=128,
                 sleep_duration_hours=float(sleep_duration),
                 sleep_quality=int(sleep_quality),
@@ -38,8 +45,12 @@ def render_daily_checkin():
                 symptoms=symptoms,
             )
             session.add(checkin)
+            session.flush()
+            from database.measurements import insert_measurement
+            for metric, value, unit in [("sleep_hours", sleep_duration, "hours"), ("mood", mood, "score"), ("energy", energy, "score"), ("fatigue", fatigue, "score")]:
+                insert_measurement(session, checkin.astronaut_id, dict(metric_name=metric, value=value, unit=unit, timestamp=checkin.timestamp, source="MANUALLY_ENTERED_DATA", mission_context="Daily check-in"), commit=False)
             session.commit()
-            st.success("Daily check-in saved.")
+            st.success("Daily check-in saved and added to mission history.")
 
         checkins = get_daily_checkins(session)
         if checkins:
@@ -52,7 +63,8 @@ def render_daily_checkin():
                 "Fatigue": item.fatigue,
                 "Timestamp": item.timestamp.strftime("%Y-%m-%d %H:%M")
             } for item in checkins]
-            st.dataframe(pd.DataFrame(records), use_container_width=True)
+            st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+            st.dataframe(pd.DataFrame(records), width="stretch")
         else:
             st.info("No check-ins recorded yet.")
     finally:

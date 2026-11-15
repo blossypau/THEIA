@@ -6,10 +6,25 @@ __pycache__/
 venv/
 .env
 .pytest_cache/
-.streamlit/
 *.db
 *.sqlite3
 *.pdf
 .idea/
 .vscode/
 .DS_Store
+
+# Local and private artifacts
+tmp/
+output/
+data/imports/
+data/processed/
+data/backups/
+*.db-*
+*.sqlite
+.env.*
+!.env.example
+node_modules/
+# External repositories are local only. Licensed anatomy runtime is in assets/anatomy.
+third_party/
+.streamlit/*
+!.streamlit/config.toml

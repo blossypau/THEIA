@@ -6,9 +6,13 @@ from .models import (
     ExerciseRecord,
     GuidanceEntry,
     HealthMeasurement,
+    ImportedDataset,
     MissionContext,
     MissionEvent,
     ModelAnalysisRecord,
+    NasaStudy,
     NutritionRecord,
+    ScientificAnalysisRecord,
+    ScientificReportDocument,
     SensorMetadata,
 )

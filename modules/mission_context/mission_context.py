@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from database.database import SessionLocal
+from database.repository import ensure_astronaut
 from database.models import MissionContext
 from database.repository import get_context_records
 
@@ -26,7 +27,7 @@ def render_mission_context():
 
         if submitted:
             entry = MissionContext(
-                astronaut_id=1,
+                astronaut_id=ensure_astronaut(session).id,
                 mission_day=int(mission_day),
                 phase=phase,
                 recent_physical_activity=activity,
@@ -54,6 +55,6 @@ def render_mission_context():
                 }
                 for item in records
             ])
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width="stretch")
     finally:
         session.close()

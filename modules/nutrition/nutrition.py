@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from database.database import SessionLocal
+from database.repository import ensure_astronaut
 from database.models import NutritionRecord
 from database.repository import get_nutrition_records
 
@@ -24,7 +25,7 @@ def render_nutrition():
 
         if submitted and meal_name:
             record = NutritionRecord(
-                astronaut_id=1,
+                astronaut_id=ensure_astronaut(session).id,
                 meal_name=meal_name,
                 calories=float(calories) if calories else None,
                 protein_g=float(protein) if protein else None,
@@ -50,7 +51,7 @@ def render_nutrition():
                     "Timestamp": item.meal_time.strftime("%Y-%m-%d %H:%M")
                 } for item in rows
             ])
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width="stretch")
         else:
             st.info("No nutrition records available yet.")
     finally:

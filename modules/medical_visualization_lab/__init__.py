@@ -1,0 +1,1 @@
+from .medical_visualization_lab import render_medical_visualization_lab
