@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from sqlalchemy import create_engine, inspect, text, event
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
@@ -19,7 +20,12 @@ engine = create_engine(f"sqlite:///{DB_PATH}", future=True, echo=False, connect_
 def sqlite_options(connection, _):
     connection.execute("PRAGMA foreign_keys=ON")
     connection.execute("PRAGMA busy_timeout=30000")
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+_main_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+session_factory_override = ContextVar('session_factory_override', default=None)
+
+def SessionLocal(*args, **kwargs):
+    factory = session_factory_override.get() or _main_factory
+    return factory(*args, **kwargs)
 
 
 def init_db() -> None:

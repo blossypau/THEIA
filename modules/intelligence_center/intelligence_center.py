@@ -13,14 +13,42 @@ def render_intelligence_center():
     with SessionLocal() as session:
         astronaut = ensure_astronaut(session)
         result = analyze(session, astronaut.id)
-        st.json({"snapshot": result["fingerprint"], "quality": result["quality"], "period": result["period"]})
-        metric = st.selectbox("Analysis indicator", sorted(ALLOWED_METRICS), key="intelligence_metric")
-        render_analysis(session, astronaut.id, metric, "intelligence")
-        st.subheader("Exploratory relationships")
-        if result["relationships"]:
-            st.dataframe(result["relationships"], hide_index=True)
-        else:
-            st.info("At least five paired UTC days with variable values are required. No relationship is inferred from unpaired data.")
+        from modules.ui.theme import info_card, section_heading
+        import plotly.graph_objects as go
+        import pandas as pd
+        columns=st.columns(3)
+        with columns[0]:info_card('INPUT OBSERVATIONS',result['quality']['total'],'Current profile / local SQLite')
+        with columns[1]:info_card('ANALYTIC COHORTS',len(result['metrics']),'Sources remain distinguishable','violet')
+        with columns[2]:info_card('EXCLUDED RECORDS',result['quality']['excluded'],'Validation and quality checks','amber')
+        metric=st.selectbox('Analysis indicator',sorted(ALLOWED_METRICS),index=sorted(ALLOWED_METRICS).index('heart_rate'),key='intelligence_metric')
+        trajectory,relations=st.columns([1.5,1])
+        with trajectory:
+            section_heading('Baseline & deviations','EXPERIMENTAL STATISTICS')
+            render_analysis(session,astronaut.id,metric,'intelligence')
+        with relations:
+            section_heading('Signal relationships','PAIRED UTC DAYS')
+            if result['relationships']:
+                cohorts=sorted({r['cohort'] for r in result['relationships']})
+                cohort=st.selectbox('Relationship cohort',cohorts,key='correlation_cohort')
+                relationships=[r for r in result['relationships'] if r['cohort']==cohort]
+                names=sorted({r[k] for r in relationships for k in ['left','right']})
+                matrix=pd.DataFrame(float('nan'),index=names,columns=names)
+                for name in names:matrix.loc[name,name]=1
+                for relation in relationships:
+                    matrix.loc[relation['left'],relation['right']]=relation['pearson_r']
+                    matrix.loc[relation['right'],relation['left']]=relation['pearson_r']
+                figure=go.Figure(go.Heatmap(z=matrix.values,x=names,y=names,zmin=-1,zmax=1,colorscale=[[0,'#9c78ff'],[.5,'#0b1e30'],[1,'#45e0f5']],colorbar=dict(title='r'),hoverongaps=False))
+                figure.update_layout(height=330,template='plotly_dark',paper_bgcolor='rgba(0,0,0,0)',margin=dict(l=15,r=15,t=15,b=15))
+                st.plotly_chart(figure,key='relationships_heatmap',width='stretch')
+                st.caption('Pearson r on daily means. Missing cells have insufficient paired data. Associations are exploratory, not causal.')
+                with st.expander('Paired sample counts'):st.dataframe(relationships,hide_index=True)
+            else:
+                st.info('At least five paired UTC days with variable values are required. No relationship is inferred from unpaired data.')
+        from modules.ui.explanations import render_explanations
+        render_explanations(session,astronaut.id,result,metric)
+        with st.expander('Methods, quality and reproducibility'):
+            st.json({'snapshot':result['fingerprint'],'quality':result['quality'],'period':result['period'],'parameters':result['parameters']})
+            st.caption(result['limitations'])
         st.caption("No predictive clinical model is trained or validated by this workflow.")
         st.subheader("Report registry")
         for record in get_report_documents(session)[:5]:

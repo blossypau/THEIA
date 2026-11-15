@@ -3,6 +3,7 @@ from __future__ import annotations
 from utils.timestamps import utc_now
 
 from datetime import datetime, timedelta
+from contextvars import ContextVar
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -25,7 +26,16 @@ from database.models import (
 )
 
 
+# Scoped per render, reset by the entry point; never shared between browser sessions.
+active_astronaut_id: ContextVar[int | None] = ContextVar("active_astronaut_id", default=None)
+
 def ensure_astronaut(session: Session) -> AstronautProfile:
+    selected_id = active_astronaut_id.get()
+    if selected_id is not None:
+        selected = session.get(AstronautProfile, selected_id)
+        if selected is None:
+            raise ValueError("Selected astronaut profile no longer exists")
+        return selected
     astronaut = session.query(AstronautProfile).filter_by(mission_id=MISSION_ID).first()
     if astronaut is None:
         astronaut = AstronautProfile(

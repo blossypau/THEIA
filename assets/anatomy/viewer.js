@@ -12,6 +12,37 @@ let movedObjects = new Map(); // uuid -> { object, material, position, underneat
 let originalPositions = new Map(); // uuid -> original position
 let visibleTypes = new Set(['muscle', 'bone']); // Currently visible types
 let axesHelper;
+let pendingTheiaCommand = null;
+let suppressBridge = false;
+let isolationActive = false;
+let groupVisibility = null;
+function applyTheiaCommand(command) {
+    if (!clickableObjects.length) { pendingTheiaCommand=command; return; }
+    suppressBridge=true;
+    try {
+        if (Array.isArray(command.identifiers)) {
+            groupVisibility=new Set(command.identifiers);
+            isolationActive=false;
+            document.getElementById('isolate-btn').textContent='Isolate selected';
+            clickableObjects.forEach(object=>{object.visible=groupVisibility.has(object.userData.theiaIdentifier);});
+        }
+        const object=clickableObjects.find(object=>object.userData.theiaIdentifier===command.identifier && object.visible);
+        if (object && object!==selectedObject) {
+            if (selectedObject) unhighlightObject(selectedObject);
+            selectedObject=object; highlightObject(object);
+            const target=new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3());
+            const shift=target.clone().sub(controls.target);
+            new TWEEN.Tween(controls.target).to({x:target.x,y:target.y,z:target.z},350).start();
+            const destination=camera.position.clone().add(shift);
+            new TWEEN.Tween(camera.position).to({x:destination.x,y:destination.y,z:destination.z},350).start();
+        } else if (!command.identifier) clearSelection();
+    } finally { suppressBridge=false; }
+}
+window.addEventListener('message',event=>{
+    const parentOrigin=new URL(document.referrer || location.href).origin;
+    if (event.source!==window.parent || event.origin!==parentOrigin || event.data?.type!=='THEIA_VIEWER_COMMAND') return;
+    applyTheiaCommand(event.data.payload || {});
+});
 
 function getViewportDimensions() {
     const fallbackWidth = 960;
@@ -66,7 +97,7 @@ const PILE_RADIUS = 0.3; // Pile radius
 function init() {
     const { width, height } = getViewportDimensions();
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a1a);
+    scene.background = new THREE.Color(0x06111f);
 
     camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
     camera.position.set(5, 5, 5);
@@ -76,14 +107,14 @@ function init() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0x82dbea, 1.1);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    const directionalLight = new THREE.DirectionalLight(0x9feaff, 1.4);
     directionalLight.position.set(10, 10, 5);
     scene.add(directionalLight);
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+    const directionalLight2 = new THREE.DirectionalLight(0x438bff, 1.0);
     directionalLight2.position.set(-10, -10, -5);
     scene.add(directionalLight2);
 
@@ -101,6 +132,8 @@ function init() {
     axesHelper = new THREE.Group();
     axesHelper.visible = false;
 
+    const grid = new THREE.GridHelper(4,28,0x1b6580,0x0d2d41);grid.position.y=-1.25;scene.add(grid);
+    const pedestal = new THREE.Mesh(new THREE.TorusGeometry(.6,.006,6,100),new THREE.MeshBasicMaterial({color:0x45e0f5,transparent:true,opacity:.5}));pedestal.rotation.x=Math.PI/2;pedestal.position.y=-1.23;scene.add(pedestal);
     const axes = new THREE.AxesHelper(2);
     axesHelper.add(axes);
 
@@ -123,9 +156,9 @@ function init() {
 
     document.getElementById('isolate-btn').addEventListener('click', () => {
         if (!selectedObject) { document.getElementById('model-status').textContent = 'Select a structure before isolating it'; return; }
-        const isolated = clickableObjects.some(obj => !obj.visible);
-        clickableObjects.forEach(obj => { obj.visible = isolated || obj === selectedObject; });
-        document.getElementById('isolate-btn').textContent = isolated ? 'Isolate selected' : 'Show all structures';
+        isolationActive = !isolationActive;
+        clickableObjects.forEach(obj => { obj.visible = isolationActive ? obj === selectedObject : (!groupVisibility || groupVisibility.has(obj.userData.theiaIdentifier)); });
+        document.getElementById('isolate-btn').textContent = isolationActive ? 'Show all structures' : 'Isolate selected';
     });
     document.getElementById('opacity-control').addEventListener('input', event => {
         const opacity = Number(event.target.value);
@@ -134,6 +167,11 @@ function init() {
             obj.material.opacity = opacity;
             obj.material.depthWrite = opacity >= 1;
         });
+    });
+    document.getElementById('wireframe-btn').addEventListener('click', event => {
+        const enabled = event.currentTarget.getAttribute('aria-pressed') !== 'true';
+        event.currentTarget.setAttribute('aria-pressed', String(enabled));
+        clickableObjects.forEach(obj => { obj.material.wireframe = enabled; });
     });
     animate();
 }
@@ -176,11 +214,17 @@ function loadModel() {
                         name: metadata.label,
                         type: metadata.type,
                     };
+                    child.material = new THREE.MeshPhongMaterial({
+                        color: metadata.type === 'bone' ? 0xb8f0ff : 0x45cfe8,
+                        emissive: 0x0c465c, shininess: 80, transparent: true, opacity: .48,
+                        depthWrite: false, side: THREE.DoubleSide
+                    });
                     clickableObjects.push(child);
                     originalPositions.set(child.uuid, child.position.clone());
                     meshNames.push(child.name || child.geometry?.uuid || 'unnamed-mesh');
                 }
             });
+            if (pendingTheiaCommand) { applyTheiaCommand(pendingTheiaCommand); pendingTheiaCommand=null; }
             window.__THEIA_MODEL_DEBUG__ = { meshNames, count: meshNames.length };
             document.getElementById('model-status').textContent = `${meshNames.length} structures loaded`;
             console.log('Model loaded successfully', meshNames.slice(0, 50));
@@ -246,8 +290,9 @@ function highlightObject(object) {
     }
 
     object.material = object.material.clone();
-    object.material.emissive = new THREE.Color(0xff0000);
-    object.material.emissiveIntensity = 0.3;
+    object.material.emissive = new THREE.Color(0x9c78ff);
+    object.material.emissiveIntensity = 1.5;
+    object.material.opacity = .9;
 
     highlightedObject = object;
     showObjectInfo(object);
@@ -373,6 +418,7 @@ function restoreObject(uuid, shouldHighlight = false) {
 }
 
 function notifyTheiaBridge(objectName, action = 'select', identifier = '', system = 'Musculoskeletal') {
+    if (suppressBridge) return;
     const normalizedName = String(objectName || '').trim();
     const payload = {
         identifier: action === 'selection-cleared' ? '' : (identifier || normalizedName || 'unknown-structure'),
@@ -529,8 +575,14 @@ function inferSystemFromName(name) {
 
 function resetAllObjects() {
     controls.reset();
-    clickableObjects.forEach(obj => { obj.visible = true; obj.material.opacity = 1; obj.material.transparent = false; obj.material.depthWrite = true; });
-    document.getElementById('opacity-control').value = 1;
+    clearSelection();
+    visibleTypes = new Set(['muscle','bone']);
+    document.getElementById('toggle-muscles').classList.add('active');
+    document.getElementById('toggle-bones').classList.add('active');
+    document.getElementById('wireframe-btn').setAttribute('aria-pressed','false');
+    isolationActive=false;
+    clickableObjects.forEach(obj => { obj.visible = !groupVisibility || groupVisibility.has(obj.userData.theiaIdentifier); obj.material.opacity = .48; obj.material.transparent = true; obj.material.depthWrite = false; obj.material.wireframe = false; });
+    document.getElementById('opacity-control').value = .48;
     document.getElementById('isolate-btn').textContent = 'Isolate selected';
     clearSelection();
     if (highlightedObject) {

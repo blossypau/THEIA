@@ -5,7 +5,7 @@ from pathlib import Path
 from database.database import SessionLocal
 from database.repository import seed_nasa_studies, get_imported_datasets
 from services.datasets import register_table
-from modules.ui.theme import apply_theia_theme, render_page_header
+from modules.ui.theme import apply_theia_theme, render_page_header, info_card, section_heading
 
 VERIFIED_STUDY = {"id": "OSD-569", "title": "Inspiration4 whole-blood research", "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-569", "reference": "https://www.nasa.gov/osdr-latest-news-i4-mission-datasets/"}
 
@@ -18,19 +18,25 @@ def render_nasa_data_hub():
     with SessionLocal() as session:
         studies = seed_nasa_studies(session)
         organism = st.selectbox("Organism", ["All", *sorted({s.organism for s in studies})], key="nasa_organism")
-        for study in studies:
-            if term not in f"{study.title} {study.variables} {study.notes}".lower() or (organism != "All" and study.organism != organism):
-                continue
-            with st.expander(study.title):
-                st.write(study.notes)
-                st.caption(f"THEIA catalogue key: {study.study_id} | {study.organism}")
-                st.link_button("Official research context", study.source_url, key=f"source_{study.id}")
-        st.subheader("Verified public study")
+        filtered=[study for study in studies if term in f"{study.title} {study.variables} {study.notes}".lower() and (organism=='All' or study.organism==organism)]
+        section_heading('Research evidence library',f'{len(filtered)} CURATED TOPICS')
+        if not filtered:st.info('No topics match these filters.')
+        columns=st.columns(2)
+        for index,study in enumerate(filtered):
+            with columns[index%2]:
+                with st.container(border=True):
+                    st.caption(('HUMAN RESEARCH CONTEXT' if study.is_human else 'PRECLINICAL RESEARCH CONTEXT')+' / CURATED TOPIC')
+                    st.subheader(study.title)
+                    st.write(study.notes)
+                    st.caption(f"{study.organism} · THEIA catalogue key {study.study_id}")
+                    st.link_button('Explore official source',study.source_url,key=f'source_{study.id}',icon=':material/open_in_new:')
+        st.divider()
+        section_heading("Human spaceflight research", "VERIFIED ACCESSION / OSD-569")
         st.write(VERIFIED_STUDY['title'])
         st.link_button("OSD-569 repository", VERIFIED_STUDY['url'])
         st.link_button("NASA source identifying this dataset", VERIFIED_STUDY['reference'])
         st.caption("Public omics research is not direct crew telemetry. Access and reuse terms must be reviewed at the source. No human subject files are downloaded automatically.")
-        st.subheader("Public NASA sample metadata - OSD-1")
+        section_heading("Preclinical sample explorer", "PUBLIC NASA API / OSD-1")
         st.caption("Drosophila spaceflight immunology research (preclinical). This imports real sample characteristics and experimental factors, not human physiological measurements or gene expression values.")
         if st.button("Fetch NASA OSD-1 sample metadata", key="fetch_osdr"):
             from services.datasets import fetch_osdr_sample_table

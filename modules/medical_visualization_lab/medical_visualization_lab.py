@@ -1,28 +1,25 @@
-﻿import os
-import streamlit as st
-import requests
+﻿import streamlit as st
 from modules.ui.theme import apply_theia_theme, render_page_header
-
-OHIF_BASE_URL = os.environ.get("THEIA_OHIF_URL", "http://localhost:3001").rstrip("/")
-OHIF_VIEWER_URL = OHIF_BASE_URL + "/local"
+from services.ohif_runtime import resolve_ohif
 
 
 def viewer_status():
-    try:
-        response = requests.get(OHIF_BASE_URL + '/app-config.js', timeout=2)
-        return response.ok and "Local files only" in response.text
-    except requests.RequestException:
-        return False
+    return resolve_ohif().ready
 
 
 def render_medical_visualization_lab():
     apply_theia_theme()
     render_page_header("Medical Visualization Lab", "OHIF | Local DICOM review")
-    if not viewer_status():
-        st.warning("Local OHIF is unavailable or is using a different configuration. Start scripts/start_theia_services.py to serve the local-only viewer.")
+    status = resolve_ohif()
+    st.button("Recheck OHIF", key="recheck_ohif")
+    if not status.ready:
+        st.warning(f"OHIF is not ready at {status.base_url}. {status.reason}")
+        st.code('.venv\\Scripts\\python.exe scripts\\start_theia_services.py --ohif-only', language='powershell')
+        st.caption("The launcher preserves incompatible listeners and uses a free port automatically. Keep its terminal open, then click Recheck OHIF. If THEIA_OHIF_URL pins an old server, unset it to enable discovery.")
         return
-    st.success("Local viewer server responds with THEIA's local-only configuration.")
+    st.success("Local OHIF verified: server identity, configuration, /local route and JavaScript bundle.")
+    st.caption(f"Active viewer: {status.viewer_url}")
     st.info("No DICOM studies are bundled. Choose compatible local DICOM files in OHIF. This configuration has no external DICOMweb source; studies stay in the browser.")
-    st.iframe(OHIF_VIEWER_URL, height=850)
-    st.link_button("Open local DICOM viewer", OHIF_VIEWER_URL)
-    st.caption("An HTTP response verifies the server, not diagnostic image compatibility. Study rendering requires a real compatible DICOM study.")
+    st.iframe(status.viewer_url, height=850, alt="OHIF local DICOM viewer")
+    st.link_button("Open local DICOM viewer", status.viewer_url)
+    st.caption("HTTP readiness verifies the viewer installation, not diagnostic image compatibility. Study rendering requires a real compatible DICOM study.")

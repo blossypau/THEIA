@@ -1,4 +1,4 @@
-﻿"""Content-addressed local scientific tables. No implicit assignment to astronauts."""
+"""Content-addressed local scientific tables. No implicit assignment to astronauts."""
 import hashlib
 import io
 from pathlib import Path
@@ -14,7 +14,7 @@ def register_table(session, content, file_name, source_url="USER_IMPORT", study_
     if frame.empty or len(frame) > 100000 or len(frame.columns) > 500:
         raise ValueError("Table requires 1-100000 rows and at most 500 columns")
     digest = hashlib.sha256(content).hexdigest()
-    directory = ROOT_DIR / "data/imports"
+    directory = Path(session.info["scenario_dir"]) / "imports" if session.info.get("scenario") else ROOT_DIR / "data/imports"
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / f"{digest}.csv"
     existing = session.query(ImportedDataset).filter_by(file_path=str(path)).first()

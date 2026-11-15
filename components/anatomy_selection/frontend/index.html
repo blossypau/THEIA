@@ -14,7 +14,7 @@
       }
       .viewer-shell {
         border: 1px solid rgba(125, 211, 252, 0.35);
-        border-radius: 18px;
+        border-radius: 12px;
         overflow: hidden;
         background: rgba(15, 23, 42, 0.9);
         box-shadow: 0 18px 46px rgba(15, 23, 42, 0.3);
@@ -22,7 +22,7 @@
       iframe {
         display: block;
         width: 100%;
-        height: 760px;
+        height: 680px;
         border: 0;
         background: #000;
       }
@@ -37,7 +37,7 @@
   </head>
   <body>
     <div class="viewer-shell">
-      <iframe id="viewer-frame" title="Anatomical viewer" src="http://localhost:3002/"></iframe>
+      <iframe id="viewer-frame" title="Anatomical viewer" src="http://127.0.0.1:3004/"></iframe>
       <div id="status" class="status">Waiting for anatomical selection…</div>
     </div>
 
@@ -49,7 +49,7 @@
         setFrameHeight(height) { this.send('streamlit:setFrameHeight', {height}); },
         setComponentValue(value) { this.send('streamlit:setComponentValue', {value, dataType: 'json'}); }
       };
-      const VALID_ORIGIN = 'http://localhost:3002';
+      let VALID_ORIGIN = 'http://127.0.0.1:3004';
       const ALLOWED_TYPES = new Set(['THEIA_ORGAN_SELECTED']);
 
       function sanitizePayload(data) {
@@ -86,7 +86,29 @@
         if (element) element.textContent = message;
       }
 
+      let lastCommand = '';
+      let pendingCommand = null;
+      function sendViewerCommand() {
+        if (pendingCommand) { document.getElementById('viewer-frame').contentWindow.postMessage({type:'THEIA_VIEWER_COMMAND',payload:pendingCommand}, VALID_ORIGIN); setStatus(pendingCommand.identifier ? `Selected via controls: ${pendingCommand.identifier}` : 'Select an anatomical structure.'); }
+      }
+      document.getElementById('viewer-frame').addEventListener('load',sendViewerCommand);
       window.addEventListener('message', function (event) {
+        if (event.source === window.parent && event.data?.type === 'streamlit:render') {
+          const requested = event.data.args?.viewer_url;
+          if (requested) {
+            const url = new URL(requested);
+            if (url.protocol === 'http:' && ['localhost','127.0.0.1'].includes(url.hostname)) {
+              VALID_ORIGIN = url.origin;
+              const frame = document.getElementById('viewer-frame');
+              if (frame.src !== url.href) frame.src = url.href;
+            }
+          }
+          const command = {identifier:event.data.args?.selected_identifier || null, identifiers:event.data.args?.visible_identifiers || null, revision:event.data.args?.command_revision || 0};
+          const encoded = JSON.stringify({identifiers:command.identifiers, revision:command.revision});
+          pendingCommand=command;
+          if (encoded !== lastCommand) { lastCommand=encoded; sendViewerCommand(); }
+          return;
+        }
         if (event.origin !== VALID_ORIGIN || event.source !== document.getElementById('viewer-frame').contentWindow) return;
 
         if (!event.data || !ALLOWED_TYPES.has(event.data.type)) return;
@@ -102,7 +124,7 @@
       });
 
       Streamlit.setComponentReady();
-      Streamlit.setFrameHeight(820);
+      Streamlit.setFrameHeight(720);
     </script>
   </body>
 </html>

@@ -1,10 +1,12 @@
-﻿"""Atomic, validated CSV measurement import."""
+"""Atomic, validated CSV measurement import."""
 import pandas as pd
 from database.measurements import insert_measurement
 from utils.measurement_schema import MeasurementPayload
 
 
 def import_csv(session, csv_path, astronaut_id=1):
+    if session.info.get('scenario'):
+        raise ValueError('CSV import is disabled in the exclusively synthetic scenario workspace')
     frame = pd.read_csv(csv_path, sep=None, engine="python")
     required = {"metric_name", "value", "unit", "timestamp"}
     if not required.issubset(frame.columns) or frame.empty or len(frame) > 100000:

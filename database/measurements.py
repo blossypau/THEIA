@@ -32,6 +32,8 @@ def measurement_frame(session, astronaut_id, metric=None, start=None, end=None):
 
 def insert_measurement(session, astronaut_id, payload, commit=True):
     payload = payload if isinstance(payload, MeasurementPayload) else MeasurementPayload.model_validate(payload)
+    if session.info.get('scenario'):
+        payload = MeasurementPayload.model_validate(payload.model_dump() | {'source':'SIMULATED_DATA'})
     if session.get(AstronautProfile, astronaut_id) is None:
         raise ValueError("Astronaut profile does not exist")
     existing = query_measurements(session, astronaut_id, payload.metric_name).filter_by(timestamp=payload.timestamp).first()

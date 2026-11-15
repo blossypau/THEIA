@@ -27,172 +27,133 @@ from modules.reports.reports import render_reports
 from modules.timeline.timeline import render_timeline
 from modules.ui.theme import apply_theia_theme
 
-st.set_page_config(page_title=APP_NAME, page_icon="🛰️", layout="wide")
+
+st.set_page_config(page_title="THEIA | Space Health Command", page_icon=":material/hub:", layout="wide")
+from html import escape
+from database.models import AstronautProfile
+from database.repository import active_astronaut_id
+from modules.ui.theme import render_page_header
+
+PAGES = {
+    "Mission Overview": "mission_overview", "Mission Scenario Mode": "scenario", "Health Dashboard": "health_dashboard",
+    "Health Monitoring": "health_monitoring", "Data Management": "data_management",
+    "Human Body Explorer": "human_body", "Medical Visualization Lab": "medical_visualization_lab",
+    "NASA Data Hub": "nasa_data_hub", "THEIA Intelligence Center": "intelligence_center",
+    "Mission Timeline": "timeline", "Daily Check-in": "daily_checkin", "Personal Baseline": "baseline",
+    "Intelligent Analysis": "analysis", "Nutrition": "nutrition", "Health Guidance": "guidance",
+    "Mission Reports": "reports", "Settings": "settings",
+}
 
 
-def init_application() -> None:
-    init_db()
-    session: Session = SessionLocal()
-    try:
+def init_application():
+    if not st.session_state.get('scenario_mode'):
+        init_db()
+    with SessionLocal() as session:
         ensure_astronaut(session)
-    finally:
-        session.close()
 
 
-def _live_system_state(session: Session) -> dict[str, str]:
-    measurement_count = session.query(func.count(HealthMeasurement.id)).scalar() or 0
-    latest_measurement = session.query(HealthMeasurement.timestamp).order_by(HealthMeasurement.timestamp.desc()).first()
-    latest_context = session.query(MissionContext.timestamp).order_by(MissionContext.timestamp.desc()).first()
-
-    if measurement_count == 0:
-        return {
-            "connection": "No local data",
-            "sync": "Idle",
-            "phase": "Awaiting metrics",
-            "last_measurement": "No recent measurements",
-            "last_context": "No mission context",
-        }
-
-    last_measurement_time = latest_measurement[0] if latest_measurement else None
-    last_context_time = latest_context[0] if latest_context else None
-    phase = "Monitoring" if last_measurement_time else "Awaiting metrics"
-    connection = "Local records" if last_measurement_time else "Limited"
-    sync = "Local only" if last_measurement_time else "Idle"
-
-    return {
-        "connection": connection,
-        "sync": sync,
-        "phase": phase,
-        "last_measurement": last_measurement_time.strftime("%Y-%m-%d %H:%M UTC") if last_measurement_time else "No recent measurements",
-        "last_context": last_context_time.strftime("%Y-%m-%d %H:%M UTC") if last_context_time else "No mission context",
-    }
+def _live_system_state(session):
+    astronaut = ensure_astronaut(session)
+    latest = session.query(HealthMeasurement).filter_by(astronaut_id=astronaut.id).order_by(HealthMeasurement.timestamp.desc()).first()
+    context = session.query(MissionContext).filter_by(astronaut_id=astronaut.id).order_by(MissionContext.timestamp.desc()).first()
+    return {"connection": "Local records" if latest else "No local data", "sync": "Local only",
+            "phase": context.phase if context else "Unspecified", "last_measurement": str(latest.timestamp) if latest else "No measurements",
+            "last_context": str(context.timestamp) if context else "No context recorded"}
 
 
-def render_top_bar() -> None:
-    session = SessionLocal()
-    try:
-        summary = get_dashboard_summary(session)
-        astronaut = summary["astronaut"]
-        state = _live_system_state(session)
-        current_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-        st.markdown(
-            f"""
-            <div class='mission-shell'>
-                <div style='display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;'>
-                    <div>
-                        <div class='section-tag'>ARCTURUS / Mission thread</div>
-                        <div class='mission-title' style='font-size:1.6rem; margin-bottom:0.2rem;'>{astronaut.name}</div>
-                        <div class='mission-subtitle'>Mission {MISSION_ID} • Day {astronaut.mission_day} • Phase: {state['phase']} • Last measurement: {state['last_measurement']}</div>
-                    </div>
-                    <div style='display:flex; flex-wrap:wrap; gap:0.7rem; align-items:center;'>
-                        <span class='status-pill'>{state['connection']}</span>
-                        <span style='color: var(--muted); font-size:0.8rem;'>{current_time}</span>
-                        <span style='color: var(--muted); font-size:0.8rem;'>Sync: {state['sync']}</span>
-                    </div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    finally:
-        session.close()
+def _profile_changed():
+    st.session_state.pop('report_bytes', None)
+    st.session_state.pop('report_profile_id', None)
+    for key in list(st.session_state):
+        if key.startswith('history_'):
+            st.session_state.pop(key, None)
 
 
-def render_sidebar() -> str:
+def _workspace_changed():
+    _profile_changed()
+    for key in ['active_astronaut','active_structure','last_anatomy_event','anatomy_structure','anatomy_command_revision','_anatomy_pending_sync','scenario_result','scenario_pdf_bytes','scenario_pdf_profile']:
+        st.session_state.pop(key,None)
+
+
+def render_sidebar():
     with st.sidebar:
-        session = SessionLocal()
-        try:
-            summary = get_dashboard_summary(session)
-            astronaut = summary["astronaut"]
-            state = _live_system_state(session)
-            st.markdown(
-                f"""
-                <div class='brand-shell'>
-                    <div class='brand-mark'>
-                        <div class='brand-orbit'>✦</div>
-                        <div class='brand-name'>THEIA</div>
-                    </div>
-                    <div class='status-pill'>{state['sync']}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            st.markdown(
-                f"""
-                <div class='profile-quadrant'>
-                    <div class='profile-label'>Astronaut</div>
-                    <div class='profile-name'>{astronaut.name}</div>
-                    <div class='mini-meta'>Mission {MISSION_ID}</div>
-                    <div class='mini-meta'>Mission day {astronaut.mission_day}</div>
-                    <div class='mini-meta'>Last context: {state['last_context']}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        finally:
-            session.close()
-
-        pages = {
-            "Mission Overview": "mission_overview",
-            "Health Dashboard": "health_dashboard",
-            "Health Monitoring": "health_monitoring",
-            "Data Management": "data_management",
-            "Human Body Explorer": "human_body",
-            "Medical Visualization Lab": "medical_visualization_lab",
-            "NASA Data Hub": "nasa_data_hub",
-            "THEIA Intelligence Center": "intelligence_center",
-            "Mission Timeline": "timeline",
-            "Daily Check-in": "daily_checkin",
-            "Personal Baseline": "baseline",
-            "Intelligent Analysis": "analysis",
-            "Nutrition": "nutrition",
-            "Health Guidance": "guidance",
-            "Mission Reports": "reports",
-            "Settings": "settings",
-        }
-        selected = st.radio("Navigation", list(pages.keys()), label_visibility="collapsed", key="navigation")
-        st.caption("v3.0.0 — mission intelligence interface")
-        return pages[selected]
+        st.markdown("<div class='brand-shell'><div class='brand-mark'><div class='brand-orbit'>✧</div><div class='brand-name'>THEIA</div></div><div class='brand-caption'>SPACE HEALTH COMMAND CENTER</div></div>", unsafe_allow_html=True)
+        st.toggle('Synthetic scenario workspace',key='scenario_mode',on_change=_workspace_changed,help='A separate SQLite database for this browser session. No real measurements are edited or reset.')
+        with SessionLocal() as session:
+            profiles = session.query(AstronautProfile).order_by(AstronautProfile.id).all()
+            labels = {p.id: p.name for p in profiles}
+            st.selectbox("Active astronaut", list(labels), format_func=lambda key: labels[key], key="active_astronaut", on_change=_profile_changed, help="Applies to all mission measurements, analyses, anatomy panels and reports.")
+        st.caption("WORKSPACE / MISSION OPERATIONS")
+        selected = st.radio("Navigation", list(PAGES), label_visibility="collapsed", key="navigation")
+        st.divider()
+        st.caption("THEIA 4.1 · LOCAL RESEARCH BUILD")
+        st.caption("Experimental analytics. No remote synchronization inferred.")
+        return PAGES[selected]
 
 
-def render_settings() -> None:
-    st.subheader("System settings")
-    st.caption("Local SQLite storage. No sensor connection or remote synchronization is inferred from stored records.")
-    st.write(f"Mission: {MISSION_ID}")
+def render_top_bar():
+    with SessionLocal() as session:
+        astronaut = ensure_astronaut(session)
+        state = _live_system_state(session)
+        current = datetime.now(timezone.utc).strftime('%H:%M UTC')
+        st.markdown(f"<div class='command-bar'><div class='command-identity'><span class='mission-code'>{escape(astronaut.mission_id)}</span><span class='command-title'>{escape(astronaut.name)} / Day {astronaut.mission_day:03}</span></div><div class='command-meta'>LOCAL STORAGE &nbsp; / &nbsp; {escape(state['last_measurement'])} &nbsp; / &nbsp; {current}</div></div>",unsafe_allow_html=True)
+
+
+def render_settings():
+    st.caption("Mission configuration and data provenance")
+    with SessionLocal() as session:
+        astronaut = ensure_astronaut(session)
+        st.metric("Mission", astronaut.mission_id)
+        st.metric("Selected profile", astronaut.name)
+    st.info("Records stay in local SQLite. Sensor connectivity and remote sync are not implied by stored measurements.")
     if st.button("Load explicit synthetic demo", key="seed_demo"):
         with SessionLocal() as session:
             seed_sample_data(session)
         st.success("Synthetic demo loaded only if the database contained no measurements.")
 
 
-def main() -> None:
+def render_application():
     apply_theia_theme()
     init_application()
     page_key = render_sidebar()
-    render_top_bar()
+    token = active_astronaut_id.set(st.session_state['active_astronaut'])
+    try:
+        render_top_bar()
+        if st.session_state.get('scenario_mode'):
+            st.warning('SYNTHETIC SCENARIO WORKSPACE · Isolated SQLite · All recorded measurements are simulated')
+        from modules.dashboard.dashboard import render_health_dashboard
+        from modules.scenario import render_scenario
+        pages = {"scenario": render_scenario, "mission_overview": render_dashboard, "health_dashboard": render_health_dashboard,
+            "health_monitoring": render_health_monitoring, "data_management": render_data_management,
+            "human_body": render_human_body, "medical_visualization_lab": render_medical_visualization_lab,
+            "nasa_data_hub": render_nasa_data_hub, "intelligence_center": render_intelligence_center,
+            "timeline": render_timeline, "daily_checkin": render_daily_checkin, "baseline": render_personal_baseline,
+            "analysis": render_anomaly_detection, "nutrition": render_nutrition, "guidance": render_health_guidance,
+            "reports": render_reports, "settings": render_settings}
+        generic = {"data_management", "baseline", "analysis", "reports", "settings", "guidance"}
+        if page_key in generic:
+            title = next(name for name,key in PAGES.items() if key==page_key)
+            render_page_header(title, "Mission workspace / selected astronaut / local research records")
+        pages[page_key]()
+        st.markdown(f"<div class='workspace-footer'>THEIA / SPACE HEALTH COMMAND &nbsp; · &nbsp; {escape(st.session_state['navigation'])} &nbsp; · &nbsp; EXPERIMENTAL RESEARCH</div>",unsafe_allow_html=True)
+    finally:
+        active_astronaut_id.reset(token)
 
-    pages = {
-        "mission_overview": render_dashboard,
-        "health_dashboard": render_dashboard,
-        "health_monitoring": render_health_monitoring,
-        "data_management": render_data_management,
-        "human_body": render_human_body,
-        "medical_visualization_lab": render_medical_visualization_lab,
-        "nasa_data_hub": render_nasa_data_hub,
-        "intelligence_center": render_intelligence_center,
-        "timeline": render_timeline,
-        "daily_checkin": render_daily_checkin,
-        "baseline": render_personal_baseline,
-        "analysis": render_anomaly_detection,
-        "nutrition": render_nutrition,
-        "guidance": render_health_guidance,
-        "reports": render_reports,
-        "settings": render_settings,
-    }
 
-    pages[page_key]()
+def main():
+    from database.database import session_factory_override
+    from uuid import uuid4
+    factory = None
+    if st.session_state.get('scenario_mode'):
+        from services.scenario import scenario_factory
+        if 'scenario_workspace_id' not in st.session_state:
+            st.session_state['scenario_workspace_id'] = str(uuid4())
+        factory = scenario_factory(st.session_state['scenario_workspace_id'])
+    workspace_token = session_factory_override.set(factory)
+    try:
+        render_application()
+    finally:
+        session_factory_override.reset(workspace_token)
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__': main()
