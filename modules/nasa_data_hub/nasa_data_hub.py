@@ -14,6 +14,10 @@ def render_nasa_data_hub():
     apply_theia_theme()
     render_page_header("NASA Data Hub", "Curated evidence catalogue | Local research tables | No live scientific feed")
     st.caption("Catalogue entries describe research topics; local HRP-* identifiers are THEIA catalogue keys, not NASA dataset accessions.")
+    with st.expander('GeneLab processing context ? methods, not astronaut biomarkers'):
+        st.write('GeneLab standardizes assay-specific processing of spaceflight omics. THEIA has no FASTQ, expression matrix or methylation reads; these pipelines are not run against scalar mission measurements.')
+        st.link_button('Pinned GeneLab processing methods','https://github.com/nasa/GeneLab_Data_Processing/tree/6d0c0fa9ffe2453a66334dcfd274fa2f726ab540')
+        st.caption('Pipeline licensing is assay-specific (NOSA 1.3 and a Microarray GPL variant), with additional third-party conditions. Public sample metadata below provides experimental context, not individual risk or gene-expression results.')
     term = st.text_input("Search catalogue", key="nasa_search").lower()
     with SessionLocal() as session:
         studies = seed_nasa_studies(session)

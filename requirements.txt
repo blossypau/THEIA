@@ -11,3 +11,7 @@ pydantic>=2.10.0
 
 requests>=2.32.0
 pypdf>=5.0
+
+# Offline Open mHealth validation and robust descriptive trends
+jsonschema>=4.26,<5
+scipy>=1.13

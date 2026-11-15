@@ -138,4 +138,32 @@ To demonstrate the complete flow:
 
 CSV measurement import is disabled inside this exclusively synthetic workspace. Generic measurement entry there forces `SIMULATED_DATA`. Session databases are independent; resetting one does not reset another. The image references guide layout only: THEIA does not simulate diagnostic MRI, genomics, medical risk probabilities or unavailable anatomical structures.
 
-The explainable engine version is 4.1.1; the statistical algorithms retain their existing parameters. Baselines include the flagged observation and selected period, and Isolation Forest can flag synthetic distribution patterns: these are not diagnoses. `VALID` denotes range/unit/schema validation, not clinical verification or sensor calibration. Demonstration screenshots are under `docs/previews/4.1/` and use synthetic records only.
+The explainable engine version is 4.2.0; the statistical algorithms retain their existing parameters. Baselines include the flagged observation and selected period, and Isolation Forest can flag synthetic distribution patterns: these are not diagnoses. `VALID` denotes range/unit/schema validation, not clinical verification or sensor calibration. Demonstration screenshots are under `docs/previews/4.1/` and use synthetic records only.
+
+
+## Scientific health expansion
+
+Run the normal local launcher and choose **Scientific Analysis** in the sidebar (also linked from Intelligence Center). Enable **Synthetic scenario workspace** for an isolated walkthrough.
+
+- **Longitudinal periods:** choose two non-overlapping UTC date ranges and a metric/source pair. THEIA validates through the existing engine, then computes daily means, median/IQR, observed-day coverage, a Theil-Sen slope from at least five observed days, and the change in period medians when both have five days. Missing days are preserved; sources are not pooled. Export contains exact input IDs and the engine snapshot. Mission Reports now include this source-separated longitudinal context.
+- **Beat-to-beat HRV:** use the explicitly synthetic NN demonstration or upload a CSV with the single column `nn_ms` outside synthetic mode. Confirm reviewed, contiguous normal-to-normal intervals. Accepted input: 120-20,000 finite intervals, 200-3,000 ms each, covering at least 120 s. These are input/protocol guards, not a guarantee of clinically valid HRV. MeanNN, sample SDNN, RMSSD and pNN50 are persisted separately with provenance, exact input values and a hash. Daily bpm values are never used to fabricate HRV.
+- **Open mHealth export:** export offline-validated bodies for heart-rate 2.0, body-temperature 3.0 and oxygen-saturation 2.0. The outer JSON is an explicitly named THEIA provenance bundle, not an OMH header or FHIR resource. Unsupported or low-quality records are reported, not silently converted. Scalar pressure does not supply a systolic/diastolic pair; a sleep-hours timestamp does not supply the actual sleep-session interval.
+- **NASA context:** NASA Data Hub links pinned GeneLab processing methods and retains explicit OSD-1 public sample-metadata retrieval. No RNAseq/omics pipeline runs against astronaut scalar measurements.
+
+The HRV implementation is a limited MIT-licensed NumPy adaptation of four NeuroKit2 0.3.0 formulas. Full NeuroKit import failed a compatibility trial on this Windows host because Application Control blocked a PyWavelets DLL. THEIA does not weaken that policy or import that runtime; the small adapted subset has analytic reference tests. pNN50 preserves NeuroKit's denominator of N intervals. This is not the complete NeuroKit ECG/PPG pipeline. YASA and MNE are not installed because the mission data lacks EEG/PSG signals.
+
+For the public DICOM verification tool only:
+
+```powershell
+.venv\Scripts\python.exe -m pip install -r requirements-science.txt
+```
+
+In **Medical Visualization Lab**, expand **Public DICOM codec demonstration**, fetch and download the verified sample, then select it with OHIF **Load files**. THEIA downloads only one pinned, deidentified public CT slice from OHIF/viewer-testdata; it verifies size, SHA-256, identity-removal tags and the decoded pixel hash. The image stays in the browser and is never assigned to an astronaut. Repository MIT notice, dataset-specific attribution/permitted codec-test use, and manifest are in `assets/testdata/`. This is not a diagnostic-volume or clinical-compatibility certification. No DICOM binary is committed.
+
+```powershell
+.venv\Scripts\python.exe -m pytest -q
+# Optional end-to-end browser check; install Playwright/Chromium in a QA environment first.
+.venv\Scripts\python.exe scripts\verify_scientific_browser.py --url http://127.0.0.1:8507
+```
+
+The browser check only edits its synthetic workspace, downloads the pinned public sample and checks its rendering inside THEIA's OHIF iframe. It writes local synthetic exports/PDF/screenshots under `tmp/science/browser/`. Full evaluation, licenses, data requirements and validation limits: [Scientific expansion](docs/SCIENTIFIC_EXPANSION.md). All statistics remain exploratory, not diagnoses or validated recovery scores. Engine 4.2.0 retains the prior statistical parameters and fixes snapshot timestamp precision to microseconds.

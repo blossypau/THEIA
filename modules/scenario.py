@@ -12,7 +12,7 @@ def _reset():
     from services.scenario import scenario_factory
     with scenario_factory(st.session_state['scenario_workspace_id'])() as session:reset_scenario(session)
     for key in list(st.session_state):
-        if key.startswith(('report_','history_','scenario_result','scenario_pdf')):
+        if key.startswith(('report_','history_','scenario_result','scenario_pdf','science_nn_result')):
             st.session_state.pop(key,None)
     st.session_state['scenario_notice']='Scenario reset to the deterministic 30-day dataset.'
 

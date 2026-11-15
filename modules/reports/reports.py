@@ -67,6 +67,14 @@ def generate_pdf_report(session=None, output_path=None, astronaut_id=None, start
                 story.append(drawing)
             for flag in item['anomalies']:
                 paragraph(f"Flag ID {flag['id']}: {flag['timestamp']} | {flag['value']} {item['unit']} | z={flag['z_score']:.3f} | {', '.join(flag['methods'])}")
+        from services.scientific_health import longitudinal_analysis
+        scientific=longitudinal_analysis(session,astronaut.id,persist=False,start=start,end=end)
+        paragraph('Source-separated longitudinal context', 'Heading2')
+        paragraph(scientific['method'])
+        for signal in scientific['signals']:
+            slope=signal['theil_sen_per_day']
+            paragraph(f"{signal['metric']} | {signal['source']} | {signal['days']}/{signal['span_days']} observed days | median {signal['median']:.3f} {signal['unit']} | IQR {signal['iqr']:.3f} | Theil-Sen/day: {slope if slope is not None else 'insufficient days'}")
+        paragraph(scientific['limitations'])
         paragraph("Exploratory relationships", "Heading2")
         if not analysis['relationships']:
             paragraph("Insufficient paired days for correlations.")

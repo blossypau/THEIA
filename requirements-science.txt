@@ -1,0 +1,2 @@
+# Optional public DICOM verification. NN subset uses existing NumPy, no full NeuroKit/EEG/PSG stack.
+pydicom==3.0.2

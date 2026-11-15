@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/openmhealth/schemas",
+  "revision": "df386000a93a35c1d7f33a023f759e41202a7d3d",
+  "license": "Apache-2.0",
+  "note": "Selected compatibility schema versions; upstream symlinks dereferenced, schema contents unchanged. No runtime network resolution.",
+  "files": {
+    "body-temperature-3.0.json": "d7c6128462ecccf92701b2bd682e9cfcf297f423f1e75cd3aa36c25abc43e055",
+    "temporal-relationship-to-sleep-1.x.json": "b0bc284a7882411850683b9270d553f69748b38d66346dd3ced23d1c9b22afa0",
+    "descriptive-statistic-1.x.json": "4e16b8f867ec99dbfb534bcc3c0fbc8bdfafbf6295460664c2427290cdbe4635",
+    "time-frame-1.x.json": "527a8804454343bfd6efc12fd49a4e61cf666b9daeb6418f83c81b143f948d90",
+    "time-interval-1.x.json": "3f1f643d8c36974229880a3fdf13284b171124cfb746eb426254392403b73d57",
+    "part-of-day-1.x.json": "c45ebf93be6d54868d83b54736709ad18333374fa916a22630b394d97dc172f1",
+    "duration-unit-value-1.x.json": "6922cc8c598d44352957be8147be8b87484c2782a3bf4e147be7701f9336589b",
+    "unit-value-1.x.json": "603a46c6831e412278759f1bd0028c11b49f5f9178d8a5a2bf2e699768b5194d",
+    "date-time-1.x.json": "9a568686a02e92a8ccc6971fd256ac82add60f78c8dd08f4d3587d06e8fe88c4",
+    "temperature-unit-value-1.x.json": "720a144c9dd396ef0f743a2065baec95b771758e32b4a02cdc431a02db9e992c",
+    "oxygen-saturation-2.0.json": "d7feff41800ca67dceacc5745a40c6051dd80d340dbcb625a16dc3180856e128",
+    "heart-rate-2.0.json": "b309579dfcd79bc17403d30179179334c41a46708138db482769b6dadaf75b00",
+    "temporal-relationship-to-physical-activity-1.x.json": "0d885a44a532deaac3c3d58d4b9a3149c9e0647c641f93517233a0e85cd57bfc"
+  }
+}

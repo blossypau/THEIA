@@ -1,0 +1,16 @@
+{
+  "period_comparison": true,
+  "omh_export": true,
+  "nn_analysis": true,
+  "pdf_longitudinal_section": true,
+  "public_dicom_in_embedded_ohif": true,
+  "mobile": [
+    390,
+    390
+  ],
+  "tablet": [
+    724,
+    724
+  ],
+  "javascript_errors": []
+}

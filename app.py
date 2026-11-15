@@ -35,7 +35,7 @@ from database.repository import active_astronaut_id
 from modules.ui.theme import render_page_header
 
 PAGES = {
-    "Mission Overview": "mission_overview", "Mission Scenario Mode": "scenario", "Health Dashboard": "health_dashboard",
+    "Mission Overview": "mission_overview", "Scientific Analysis": "scientific_health", "Mission Scenario Mode": "scenario", "Health Dashboard": "health_dashboard",
     "Health Monitoring": "health_monitoring", "Data Management": "data_management",
     "Human Body Explorer": "human_body", "Medical Visualization Lab": "medical_visualization_lab",
     "NASA Data Hub": "nasa_data_hub", "THEIA Intelligence Center": "intelligence_center",
@@ -62,6 +62,7 @@ def _live_system_state(session):
 
 
 def _profile_changed():
+    st.session_state.pop('science_nn_result', None)
     st.session_state.pop('report_bytes', None)
     st.session_state.pop('report_profile_id', None)
     for key in list(st.session_state):
@@ -123,7 +124,8 @@ def render_application():
             st.warning('SYNTHETIC SCENARIO WORKSPACE · Isolated SQLite · All recorded measurements are simulated')
         from modules.dashboard.dashboard import render_health_dashboard
         from modules.scenario import render_scenario
-        pages = {"scenario": render_scenario, "mission_overview": render_dashboard, "health_dashboard": render_health_dashboard,
+        from modules.scientific_health import render_scientific_health
+        pages = {"scientific_health": render_scientific_health, "scenario": render_scenario, "mission_overview": render_dashboard, "health_dashboard": render_health_dashboard,
             "health_monitoring": render_health_monitoring, "data_management": render_data_management,
             "human_body": render_human_body, "medical_visualization_lab": render_medical_visualization_lab,
             "nasa_data_hub": render_nasa_data_hub, "intelligence_center": render_intelligence_center,
