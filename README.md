@@ -59,6 +59,15 @@ pytest -q
 - The system is designed to support interpretation by astronauts and authorized care teams.
 - Real sensor data, manually entered data, simulated data, and public research data are all labeled explicitly.
 
+## Research and audit docs
+
+The project now includes structured technical documentation in the `docs/` folder:
+
+- `docs/TECHNICAL_AUDIT.md` — module-by-module project audit and status review
+- `docs/GITHUB_RESEARCH.md` — research into reusable open-source projects and evaluation
+- `docs/INTEGRATION_ROADMAP.md` — recommended integration plan and implementation priorities
+- `docs/TESTING_REPORT.md` — validation checklist and known limitations
+
 ## Future extension
 
 The architecture supports future integration with approved research datasets, compatible BLE sensors, and offline synchronization workflows. Data provenance and uncertainty are retained throughout the system.

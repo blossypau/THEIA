@@ -93,6 +93,73 @@ class MissionEvent(Base):
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class NasaStudy(Base):
+    __tablename__ = "nasa_studies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    study_id: Mapped[str] = mapped_column(String(100), index=True, unique=True)
+    title: Mapped[str] = mapped_column(String(255))
+    source_name: Mapped[str] = mapped_column(String(150), default="NASA")
+    source_url: Mapped[str] = mapped_column(String(500))
+    organism: Mapped[str] = mapped_column(String(100), default="Human")
+    study_type: Mapped[str] = mapped_column(String(100), default="Observational")
+    experiment_type: Mapped[str] = mapped_column(String(150), default="Research")
+    variables: Mapped[str] = mapped_column(Text, default="")
+    space_factors: Mapped[str] = mapped_column(Text, default="")
+    data_type: Mapped[str] = mapped_column(String(100), default="Dataset")
+    file_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    imported_file: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    license_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    references: Mapped[str | None] = mapped_column(Text, nullable=True)
+    publication_date: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    is_human: Mapped[bool] = mapped_column(default=False)
+    is_animal: Mapped[bool] = mapped_column(default=False)
+    is_cellular: Mapped[bool] = mapped_column(default=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ImportedDataset(Base):
+    __tablename__ = "imported_datasets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    study_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    file_name: Mapped[str] = mapped_column(String(255))
+    file_path: Mapped[str] = mapped_column(String(500))
+    row_count: Mapped[int] = mapped_column(Integer, default=0)
+    columns: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_label: Mapped[str] = mapped_column(String(150), default="USER_IMPORT")
+    imported_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    status: Mapped[str] = mapped_column(String(60), default="UPLOADED")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ScientificAnalysisRecord(Base):
+    __tablename__ = "scientific_analysis_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    analysis_type: Mapped[str] = mapped_column(String(150))
+    model_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    version: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    input_variables: Mapped[str] = mapped_column(Text)
+    run_timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    result_summary: Mapped[str] = mapped_column(Text)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    dataset_source: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    limitations: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ScientificReportDocument(Base):
+    __tablename__ = "scientific_report_documents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    report_type: Mapped[str] = mapped_column(String(150))
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    title: Mapped[str] = mapped_column(String(255))
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    references: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class ExerciseRecord(Base):
     __tablename__ = "exercise_records"
 

@@ -22,10 +22,14 @@ def init_db() -> None:
         ExerciseRecord,
         GuidanceEntry,
         HealthMeasurement,
+        ImportedDataset,
         MissionContext,
         MissionEvent,
         ModelAnalysisRecord,
+        NasaStudy,
         NutritionRecord,
+        ScientificAnalysisRecord,
+        ScientificReportDocument,
         SensorMetadata,
     )
 

@@ -13,9 +13,13 @@ from database.models import (
     ExerciseRecord,
     GuidanceEntry,
     HealthMeasurement,
+    ImportedDataset,
     MissionContext,
     MissionEvent,
+    NasaStudy,
     NutritionRecord,
+    ScientificAnalysisRecord,
+    ScientificReportDocument,
 )
 
 
@@ -237,3 +241,181 @@ def get_nutrition_records(session: Session):
 
 def get_guidance_entries(session: Session):
     return session.query(GuidanceEntry).all()
+
+
+def seed_nasa_studies(session: Session) -> list[NasaStudy]:
+    if session.query(NasaStudy).count() > 0:
+        return session.query(NasaStudy).order_by(NasaStudy.id.asc()).all()
+
+    entries = [
+        NasaStudy(
+            study_id="HRP-CV-01",
+            title="Cardiovascular Adaptations to Spaceflight",
+            source_name="NASA Human Research Program",
+            source_url="https://www.nasa.gov/hrp/",
+            organism="Human",
+            study_type="Physiology",
+            experiment_type="Cardiovascular monitoring",
+            variables="heart_rate,blood_pressure,body_temperature,oxygen_saturation",
+            space_factors="Microgravity, workload, recovery",
+            data_type="Observational dataset",
+            file_url="https://www.nasa.gov/hrp/",
+            license_note="Use per NASA public research guidance and source terms.",
+            references="NASA HRP; Human Research Roadmap; OSDR evidence catalog.",
+            publication_date="2024",
+            is_human=True,
+            notes="Relevant to cardiovascular physiology, rhythm adaptation, and orthostatic stress monitoring.",
+        ),
+        NasaStudy(
+            study_id="HRP-MSK-01",
+            title="Musculoskeletal and Bone Loss in Long-Duration Spaceflight",
+            source_name="NASA HRP Evidence Reports",
+            source_url="https://humanresearchroadmap.nasa.gov/Evidence/",
+            organism="Human",
+            study_type="Bone and muscle research",
+            experiment_type="Longitudinal health study",
+            variables="bone_density,exercise_load,body_mass,physical_performance",
+            space_factors="Microgravity, unloading, exercise countermeasures",
+            data_type="Research summary",
+            file_url="https://humanresearchroadmap.nasa.gov/Evidence/",
+            license_note="Public evidence summary; verify source-specific terms.",
+            references="NASA HRP, Human Research Roadmap, integrated physiology evidence.",
+            publication_date="2024",
+            is_human=True,
+            notes="Supports musculoskeletal and bone-loss analysis in mission scenarios.",
+        ),
+        NasaStudy(
+            study_id="HRP-SLEEP-01",
+            title="Sleep and Circadian Rhythms During Spaceflight",
+            source_name="NASA HRP",
+            source_url="https://www.nasa.gov/hrp/ongoing-hrp-research/",
+            organism="Human",
+            study_type="Behavioral and sleep health",
+            experiment_type="Circadian rhythm assessment",
+            variables="sleep_hours,mood,fatigue,rest_quality",
+            space_factors="Confinement, circadian disruption, mission schedule",
+            data_type="Behavioral dataset",
+            file_url="https://www.nasa.gov/hrp/ongoing-hrp-research/",
+            license_note="Public program information and evidence context.",
+            references="NASA HRP, behavioral health research notes, mission operations documentation.",
+            publication_date="2024",
+            is_human=True,
+            notes="Supports sleep and recovery analysis for crew performance and habitability studies.",
+        ),
+        NasaStudy(
+            study_id="OSDR-IMM-01",
+            title="Immune System and Spaceflight Adaptation",
+            source_name="NASA OSDR",
+            source_url="https://osdr.nasa.gov/bio/repo/",
+            organism="Human",
+            study_type="Immunology",
+            experiment_type="Biomarker study",
+            variables="immune_markers,cytokines,hematology,stress_response",
+            space_factors="Spaceflight stress, altered immunity, radiation exposure",
+            data_type="Public repository dataset",
+            file_url="https://osdr.nasa.gov/bio/repo/",
+            license_note="Use according to repository access terms.",
+            references="NASA OSDR repository metadata and bioscience data catalog entries.",
+            publication_date="2024",
+            is_human=True,
+            notes="Useful for cross-system analysis where immunologic biomarkers are available.",
+        ),
+        NasaStudy(
+            study_id="HRP-RAD-01",
+            title="Space Radiation and Biological Response",
+            source_name="NASA Human Research Roadmap",
+            source_url="https://humanresearchroadmap.nasa.gov/Risks/",
+            organism="Human and cellular",
+            study_type="Radiation risk",
+            experiment_type="Radiation biology study",
+            variables="radiation_exposure,cellular_damage,genomic_response,biomarker_response",
+            space_factors="Ionizing radiation, chronic exposure, biological damage",
+            data_type="Risk evidence dataset",
+            file_url="https://humanresearchroadmap.nasa.gov/Risks/",
+            license_note="Evidence and program documentation from NASA, with publication-level attribution required.",
+            references="NASA Human Research Roadmap risk pages and evidence summaries.",
+            publication_date="2024",
+            is_human=True,
+            is_cellular=True,
+            notes="High-value context for risk modeling, but not interchangeable with clinical human health measurements.",
+        ),
+    ]
+    session.add_all(entries)
+    session.commit()
+    return session.query(NasaStudy).order_by(NasaStudy.id.asc()).all()
+
+
+def search_nasa_studies(session: Session, keyword: str = "", organism: str | None = None, study_type: str | None = None):
+    query = session.query(NasaStudy)
+    if keyword:
+        keyword_like = f"%{keyword.lower()}%"
+        query = query.filter(
+            (func.lower(NasaStudy.title).like(keyword_like))
+            | (func.lower(NasaStudy.variables).like(keyword_like))
+            | (func.lower(NasaStudy.space_factors).like(keyword_like))
+            | (func.lower(NasaStudy.notes).like(keyword_like))
+        )
+    if organism:
+        query = query.filter(func.lower(NasaStudy.organism) == organism.lower())
+    if study_type:
+        query = query.filter(func.lower(NasaStudy.study_type) == study_type.lower())
+    return query.order_by(NasaStudy.title.asc()).all()
+
+
+def save_imported_dataset(session: Session, study_id: str, file_name: str, file_path: str, columns: str, row_count: int, notes: str | None = None) -> ImportedDataset:
+    record = ImportedDataset(
+        study_id=study_id,
+        file_name=file_name,
+        file_path=file_path,
+        row_count=row_count,
+        columns=columns,
+        source_label="USER_IMPORT",
+        notes=notes,
+    )
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return record
+
+
+def get_imported_datasets(session: Session):
+    return session.query(ImportedDataset).order_by(ImportedDataset.imported_at.desc()).all()
+
+
+def save_analysis_record(session: Session, analysis_type: str, input_variables: str, result_summary: str, model_name: str | None = None, version: str | None = None, confidence: float | None = None, dataset_source: str | None = None, limitations: str | None = None) -> ScientificAnalysisRecord:
+    record = ScientificAnalysisRecord(
+        analysis_type=analysis_type,
+        model_name=model_name,
+        version=version,
+        input_variables=input_variables,
+        result_summary=result_summary,
+        confidence=confidence,
+        dataset_source=dataset_source,
+        limitations=limitations,
+    )
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return record
+
+
+def get_analysis_records(session: Session):
+    return session.query(ScientificAnalysisRecord).order_by(ScientificAnalysisRecord.run_timestamp.desc()).all()
+
+
+def save_scientific_report(session: Session, report_type: str, title: str, summary: str, file_path: str | None = None, references: str | None = None) -> ScientificReportDocument:
+    record = ScientificReportDocument(
+        report_type=report_type,
+        title=title,
+        summary=summary,
+        file_path=file_path,
+        references=references,
+    )
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return record
+
+
+def get_report_documents(session: Session):
+    return session.query(ScientificReportDocument).order_by(ScientificReportDocument.generated_at.desc()).all()

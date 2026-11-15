@@ -1,0 +1,1 @@
+from .intelligence_center import render_intelligence_center
