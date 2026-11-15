@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/OHIF/viewer-testdata",
+  "revision": "97b3d147505f65075cddaa5cbbc7b810c6656ece",
+  "path": "dcm/grayEncode/explicit-le.dcm",
+  "sha256": "a2a750f2dd253632a79fffc353189850b0647d6fb753fee7d7c61cf1f2615410",
+  "bytes": 526422,
+  "pixel_sha256": "dd3e7df2f189a9b947a3e808e57d810c98c5d08109b0107e85f2b5e65c8fefeb",
+  "study_uid": "2.25.262478289063731792084544913479622212167",
+  "license": "Repository MIT; upstream grayEncode README explicitly permits redistribution of anonymized Barre public sample for codec testing only, not clinical use.",
+  "source_notice": "https://github.com/OHIF/viewer-testdata/blob/97b3d147505f65075cddaa5cbbc7b810c6656ece/dcm/grayEncode/README.md",
+  "origin": "Barre DICOM sample set, Picker PQ5000 (1999), anonymized upstream and additionally deidentified by OHIF. Single 512x512 CT slice, not a complete diagnostic volume.",
+  "intended_use": "Public viewer/codec demonstration only. Never assigned to astronaut records. No automatic external DICOMweb source."
+}

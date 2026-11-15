@@ -2,13 +2,14 @@
 from contextlib import contextmanager
 from datetime import datetime,timedelta
 from functools import lru_cache
+from threading import RLock
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from config.settings import ROOT_DIR, MISSION_ID
-from database.database import Base
+from database.database import Base, sqlite_options
 from database.models import AstronautProfile, HealthMeasurement, ScientificAnalysisRecord, ScientificReportDocument, MissionEvent
 from database.measurements import insert_measurement
 
@@ -30,17 +31,24 @@ def seed_scenario(session):
     session.commit()
 
 
+_creation_lock=RLock()
+
+
 @lru_cache(maxsize=32)
 def scenario_factory(workspace_id, root=None):
     identifier=UUID(str(workspace_id)).hex
     directory=Path(root or ROOT_DIR/'tmp/scenarios')/identifier
-    directory.mkdir(parents=True,exist_ok=True)
-    engine=create_engine(f'sqlite:///{directory / "scenario.sqlite3"}',connect_args={'timeout':30})
-    Base.metadata.create_all(engine)
-    factory=sessionmaker(bind=engine,autoflush=False,info={'scenario':True,'scenario_dir':str(directory)})
-    with factory() as session:
-        if not session.query(AstronautProfile).count():seed_scenario(session)
-    return factory
+    # lru_cache can call its wrapped function concurrently on the same cache miss.
+    # Serialize schema creation and seed so overlapping Streamlit reruns cannot race.
+    with _creation_lock:
+        directory.mkdir(parents=True,exist_ok=True)
+        engine=create_engine(f'sqlite:///{directory / "scenario.sqlite3"}',connect_args={'timeout':30})
+        event.listen(engine,'connect',sqlite_options)
+        Base.metadata.create_all(engine)
+        factory=sessionmaker(bind=engine,autoflush=False,info={'scenario':True,'scenario_dir':str(directory)})
+        with factory() as session:
+            if not session.query(AstronautProfile).count():seed_scenario(session)
+        return factory
 
 
 def reset_scenario(session):

@@ -10,13 +10,13 @@ from database.measurements import measurement_frame
 from database.models import ScientificAnalysisRecord
 from utils.measurement_schema import MeasurementPayload
 
-VERSION = "4.1.1"
+VERSION = "4.2.0"
 LIMITATIONS = "Experimental statistics, not a validated medical AI. Associations are not causal. Baselines include the selected period. Mixed sources are summarized separately."
 
 
 def analyze(session, astronaut_id, start=None, end=None, persist=True):
     frame = measurement_frame(session, astronaut_id, start=start, end=end)
-    fingerprint = hashlib.sha256((frame.to_json(date_format="iso", orient="records") + str((astronaut_id, start, end, VERSION))).encode()).hexdigest()
+    fingerprint = hashlib.sha256((frame.to_json(date_format="iso", date_unit="us", double_precision=15, orient="records") + str((astronaut_id, start, end, VERSION))).encode()).hexdigest()
     source_key = f"profile:{astronaut_id}:{fingerprint}"
     cached = session.query(ScientificAnalysisRecord).filter_by(analysis_type="integrated_health", version=VERSION, dataset_source=source_key).first()
     if cached:

@@ -10,6 +10,8 @@ from modules.ui.theme import apply_theia_theme, render_page_header
 def render_intelligence_center():
     apply_theia_theme()
     render_page_header("THEIA Intelligence Center", "Shared statistical engine | Reproducible SQLite snapshots")
+    from modules.ui.theme import navigation_button
+    navigation_button('Open longitudinal, HRV and data standards tools','Scientific Analysis','open_science',':material/science:')
     with SessionLocal() as session:
         astronaut = ensure_astronaut(session)
         result = analyze(session, astronaut.id)
