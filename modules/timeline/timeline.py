@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from database.database import SessionLocal
+from database.repository import ensure_astronaut
 from database.models import MissionEvent
 from database.repository import get_mission_events
 from modules.ui.theme import apply_theia_theme, render_page_header
@@ -45,7 +46,7 @@ def render_timeline() -> None:
                 "Description": event.description,
                 "Timestamp": event.timestamp.strftime("%Y-%m-%d %H:%M")
             } for event in filtered]
-            st.dataframe(pd.DataFrame(rows), use_container_width=True)
+            st.dataframe(pd.DataFrame(rows), width="stretch")
         else:
             st.info("No mission events recorded yet.")
 
@@ -58,7 +59,7 @@ def render_timeline() -> None:
 
         if submitted:
             event = MissionEvent(
-                astronaut_id=1,
+                astronaut_id=ensure_astronaut(session).id,
                 event_type=event_type or "General",
                 description=description or "Manual mission event",
                 mission_day=int(mission_day),

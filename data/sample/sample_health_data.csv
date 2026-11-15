@@ -1,7 +1,7 @@
 metric_name,value,unit,timestamp,source,data_quality_status,mission_context
-heart_rate,62,bpm,2026-11-01T08:00:00,MANUALLY_ENTERED_DATA,VALID,Routine check
-blood_pressure,118,mmHg,2026-11-01T08:15:00,MANUALLY_ENTERED_DATA,VALID,Daily measurement
-blood_glucose,96,mg/dL,2026-11-01T08:45:00,MANUALLY_ENTERED_DATA,VALID,Post-breakfast
-body_temperature,36.8,C,2026-11-01T07:30:00,REAL_SENSOR_DATA,VALID,Morning measurement
-sleep_hours,7.1,hours,2026-11-02T09:00:00,MANUALLY_ENTERED_DATA,VALID,Sleep record
-mood,72,score,2026-11-02T09:30:00,MANUALLY_ENTERED_DATA,VALID,Daily check-in
+heart_rate,62,bpm,2026-11-01T08:00:00,SIMULATED_DATA,VALID,Routine check
+blood_pressure,118,mmHg,2026-11-01T08:15:00,SIMULATED_DATA,VALID,Daily measurement
+blood_glucose,96,mg/dL,2026-11-01T08:45:00,SIMULATED_DATA,VALID,Post-breakfast
+body_temperature,36.8,C,2026-11-01T07:30:00,SIMULATED_DATA,VALID,Morning measurement
+sleep_hours,7.1,hours,2026-11-02T09:00:00,SIMULATED_DATA,VALID,Sleep record
+mood,72,score,2026-11-02T09:30:00,SIMULATED_DATA,VALID,Daily check-in

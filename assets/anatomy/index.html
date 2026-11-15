@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Model Viewer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="info-panel" class="info-panel hidden">
+        <button id="close-btn" class="close-btn">&times;</button>
+        <div id="info-type" class="info-type"></div>
+        <h3 id="info-title">Object Info</h3>
+        <p id="info-detail"></p>
+        <a id="info-wiki-link" class="wiki-link" href="#" target="_blank" style="display:none;">View on Wiki →</a>
+    </div>
+
+    <div id="model-status" style="position:absolute;top:8px;left:8px;color:#b9f4ff;z-index:5;font:12px sans-serif">Loading model...</div>
+    <div class="controls">
+        <button id="isolate-btn" class="control-btn">Isolate selected</button>
+        <label style="color:white">Opacity <input id="opacity-control" type="range" min="0.15" max="1" step="0.05" value="1"></label>
+        <button id="reset-btn" class="control-btn">Reset All</button>
+        <button id="toggle-muscles" class="control-btn toggle-btn active">Muscles</button>
+        <button id="toggle-bones" class="control-btn toggle-btn active">Bones</button>
+        <button id="toggle-axes" class="control-btn toggle-btn">Axes</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script src="./libs/tween.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "./libs/three.module.js",
+            "three/addons/": "./libs/"
+        }
+    }
+    </script>
+    <script type="module" src="viewer.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -44,13 +44,15 @@ METRIC_RANGES = {
     "blood_glucose": (30, 400),
     "body_temperature": (30, 45),
     "sleep_hours": (0, 24),
-    "mood": (0, 10),
-    "energy": (0, 10),
-    "fatigue": (0, 10),
+    "mood": (0, 100),
+    "energy": (0, 100),
+    "fatigue": (0, 100),
     "oxygen_saturation": (40, 100),
 }
 
 ALLOWED_SOURCES = {
+    "MANUAL_INPUT",
+    "IMPORTED_DATA",
     "REAL_SENSOR_DATA",
     "MANUALLY_ENTERED_DATA",
     "SIMULATED_DATA",
@@ -62,13 +64,21 @@ class MeasurementPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     metric_name: str = Field(..., min_length=2, max_length=80)
-    value: float = Field(..., gt=0)
+    value: float = Field(..., ge=0, allow_inf_nan=False)
     unit: str = Field(..., min_length=1, max_length=20)
     timestamp: datetime
     source: str = "MANUALLY_ENTERED_DATA"
     data_quality_status: str = "VALID"
     mission_context: str | None = None
     notes: str | None = None
+
+    @field_validator("timestamp")
+    @classmethod
+    def validate_time(cls, value: datetime) -> datetime:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None) if value.tzinfo else value
+        if value > datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=5):
+            raise ValueError("Timestamp cannot be in the future; use UTC")
+        return value
 
     @field_validator("metric_name")
     @classmethod

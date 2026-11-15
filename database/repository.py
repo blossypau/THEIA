@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from utils.timestamps import utc_now
+
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
@@ -45,7 +47,7 @@ def seed_sample_data(session: Session) -> AstronautProfile:
     if session.query(HealthMeasurement).count() > 0:
         return astronaut
 
-    base = datetime.utcnow() - timedelta(days=14)
+    base = utc_now() - timedelta(days=14)
     for i in range(14):
         ts = base + timedelta(days=i, hours=8)
         session.add_all(
@@ -66,7 +68,7 @@ def seed_sample_data(session: Session) -> AstronautProfile:
                     value=118 + (i % 6),
                     unit="mmHg",
                     timestamp=ts,
-                    source="MANUALLY_ENTERED_DATA",
+                    source="SIMULATED_DATA",
                     data_quality_status="VALID",
                     mission_context="Daily measurement",
                 ),
@@ -86,7 +88,7 @@ def seed_sample_data(session: Session) -> AstronautProfile:
                     value=36.8 + (i % 4) * 0.1,
                     unit="C",
                     timestamp=ts,
-                    source="REAL_SENSOR_DATA",
+                    source="SIMULATED_DATA",
                     data_quality_status="VALID",
                     mission_context="Morning measurement",
                 ),
@@ -96,7 +98,7 @@ def seed_sample_data(session: Session) -> AstronautProfile:
                     value=7.2 + (i % 3) * 0.3,
                     unit="hours",
                     timestamp=ts,
-                    source="MANUALLY_ENTERED_DATA",
+                    source="SIMULATED_DATA",
                     data_quality_status="VALID",
                     mission_context="Sleep record",
                 ),
@@ -106,7 +108,7 @@ def seed_sample_data(session: Session) -> AstronautProfile:
                     value=72 + (i % 4),
                     unit="score",
                     timestamp=ts,
-                    source="MANUALLY_ENTERED_DATA",
+                    source="SIMULATED_DATA",
                     data_quality_status="VALID",
                     mission_context="Daily check-in",
                 ),
@@ -126,7 +128,7 @@ def seed_sample_data(session: Session) -> AstronautProfile:
                 effort=40,
                 general_observations="Recovered well after exercise block.",
                 symptoms="None",
-                timestamp=datetime.utcnow() - timedelta(days=1),
+                timestamp=utc_now() - timedelta(days=1),
             ),
             DailyCheckin(
                 astronaut_id=astronaut.id,
@@ -139,7 +141,7 @@ def seed_sample_data(session: Session) -> AstronautProfile:
                 effort=55,
                 general_observations="Moderate workload with reduced recovery.",
                 symptoms="Mild fatigue",
-                timestamp=datetime.utcnow() - timedelta(days=2),
+                timestamp=utc_now() - timedelta(days=2),
             ),
             MissionContext(
                 astronaut_id=astronaut.id,
@@ -152,19 +154,19 @@ def seed_sample_data(session: Session) -> AstronautProfile:
                 nutrition="Meals and hydration tracked with 3 eating windows.",
                 environmental_observations="Cabin pressure stable, thermal range normal.",
                 relevant_events="Crew briefing completed.",
-                timestamp=datetime.utcnow(),
+                timestamp=utc_now(),
             ),
             MissionEvent(
                 astronaut_id=astronaut.id,
                 event_type="Exercise",
                 description="Strength training and recovery cycle.",
                 mission_day=DEFAULT_MISSION_DAY,
-                timestamp=datetime.utcnow() - timedelta(hours=5),
+                timestamp=utc_now() - timedelta(hours=5),
             ),
             NutritionRecord(
                 astronaut_id=astronaut.id,
                 meal_name="Protein oats and fruit",
-                meal_time=datetime.utcnow() - timedelta(hours=5),
+                meal_time=utc_now() - timedelta(hours=5),
                 calories=420,
                 protein_g=18,
                 carbs_g=48,
@@ -189,11 +191,12 @@ def seed_sample_data(session: Session) -> AstronautProfile:
     return astronaut
 
 
-def get_latest_measurements(session: Session, metric_names=None):
+def get_latest_measurements(session: Session, metric_names=None, astronaut_id=None):
+    astronaut_id = astronaut_id or ensure_astronaut(session).id
     metrics = metric_names or ["heart_rate", "blood_pressure", "blood_glucose", "body_temperature", "sleep_hours", "mood"]
     results = []
     for metric in metrics:
-        row = session.query(HealthMeasurement).filter_by(metric_name=metric).order_by(HealthMeasurement.timestamp.desc()).first()
+        row = session.query(HealthMeasurement).filter_by(astronaut_id=astronaut_id, metric_name=metric).order_by(HealthMeasurement.timestamp.desc(), HealthMeasurement.id.desc()).first()
         if row:
             results.append(row)
     return results
@@ -201,11 +204,15 @@ def get_latest_measurements(session: Session, metric_names=None):
 
 def get_dashboard_summary(session: Session):
     astronaut = ensure_astronaut(session)
-    latest = get_latest_measurements(session)
+    latest = get_latest_measurements(session, astronaut_id=astronaut.id)
+    from intelligence.engine import analyze
+    analysis = analyze(session, astronaut.id)
     latest_checkin = session.query(DailyCheckin).filter_by(astronaut_id=astronaut.id).order_by(DailyCheckin.timestamp.desc()).first()
-    anomalies = session.query(AnomalyRecord).filter_by(astronaut_id=astronaut.id).order_by(AnomalyRecord.timestamp.desc()).limit(5).all()
+    from types import SimpleNamespace
+    anomalies = [SimpleNamespace(metric_name=item['metric'], flag_level='STATISTICAL', explanation=f"{flag['timestamp']} | {item['cohort']} | z={flag['z_score']:.2f}") for item in analysis['metrics'].values() for flag in item['anomalies']]
     latest_context = session.query(MissionContext).filter_by(astronaut_id=astronaut.id).order_by(MissionContext.timestamp.desc()).first()
     return {
+        "analysis": analysis,
         "astronaut": astronaut,
         "latest_measurements": latest,
         "latest_checkin": latest_checkin,
@@ -222,6 +229,11 @@ def get_mission_events(session: Session):
 def get_measurements_for_metric(session: Session, metric_name: str):
     astronaut = ensure_astronaut(session)
     return session.query(HealthMeasurement).filter_by(astronaut_id=astronaut.id, metric_name=metric_name).order_by(HealthMeasurement.timestamp.asc()).all()
+
+
+def save_health_measurement(session: Session, metric_name: str, value: float, unit: str, source: str = "MANUAL_INPUT", mission_context: str | None = None, notes: str | None = None) -> HealthMeasurement:
+    from database.measurements import insert_measurement
+    return insert_measurement(session, ensure_astronaut(session).id, dict(metric_name=metric_name, value=value, unit=unit, source=source, timestamp=utc_now(), mission_context=mission_context, notes=notes))
 
 
 def get_daily_checkins(session: Session):

@@ -9,6 +9,8 @@ from sklearn.model_selection import train_test_split
 
 
 def assess_prediction_readiness(df: pd.DataFrame, target_column: str, feature_columns: list[str], min_rows: int = 20) -> dict[str, Any]:
+    if not feature_columns or target_column in feature_columns:
+        return {"status": "insufficient_data", "reason": "Select predictors distinct from the target; target leakage is prohibited."}
     if df.empty:
         return {
             "status": "insufficient_data",
@@ -28,7 +30,8 @@ def assess_prediction_readiness(df: pd.DataFrame, target_column: str, feature_co
             "reason": f"Missing required feature columns: {missing_features}",
             "recommendation": "Verify units, feature provenance, and comparability before training.",
         }
-    if len(df) < min_rows:
+    working = df[feature_columns + [target_column]].apply(pd.to_numeric, errors="coerce").replace([float('inf'), -float('inf')], float('nan')).dropna()
+    if len(working) < min_rows or working[target_column].nunique() < 2:
         return {
             "status": "insufficient_data",
             "reason": f"Only {len(df)} rows were available, below the minimum threshold of {min_rows}.",
@@ -49,7 +52,7 @@ def build_demo_regression(df: pd.DataFrame, target_column: str, feature_columns:
     if readiness["status"] != "ready_for_experiment":
         return {"status": "educational_only", "details": readiness}
 
-    working = df[feature_columns + [target_column]].dropna().copy()
+    working = df[feature_columns + [target_column]].apply(pd.to_numeric, errors="coerce").replace([float("inf"), -float("inf")], float("nan")).dropna().copy()
     X = working[feature_columns]
     y = working[target_column]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)

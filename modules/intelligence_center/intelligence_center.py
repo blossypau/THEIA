@@ -1,93 +1,43 @@
-from __future__ import annotations
-
-import pandas as pd
-import streamlit as st
-
-from analytics.anomaly import detect_anomalies
-from analytics.eda import summarize_dataframe
-from analytics.predictive import assess_prediction_readiness, build_demo_regression
+﻿import streamlit as st
 from database.database import SessionLocal
-from database.repository import get_analysis_records, get_imported_datasets, get_report_documents, seed_nasa_studies
-from modules.nasa_data_hub.nasa_data_hub import render_nasa_data_hub
+from database.repository import ensure_astronaut, get_report_documents
+from intelligence.engine import analyze
+from services.analysis_views import render_analysis
+from utils.measurement_schema import ALLOWED_METRICS
 from modules.ui.theme import apply_theia_theme, render_page_header
 
 
-def _build_demo_dataset() -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "timestamp": pd.date_range("2024-01-01", periods=30, freq="D"),
-            "heart_rate": [64, 66, 65, 68, 70, 71, 69, 72, 74, 73, 68, 67, 65, 66, 71, 75, 78, 77, 73, 70, 68, 69, 71, 72, 74, 76, 79, 77, 75, 73],
-            "sleep_hours": [7.1, 7.4, 7.3, 6.9, 7.0, 7.2, 7.5, 6.6, 6.8, 7.0, 7.1, 7.4, 6.9, 7.5, 7.2, 6.8, 6.7, 7.0, 7.1, 7.2, 6.9, 7.0, 7.3, 7.1, 6.8, 6.7, 7.1, 7.4, 7.2, 7.0],
-            "fatigue": [30, 34, 33, 35, 42, 39, 36, 42, 46, 48, 43, 38, 35, 31, 34, 40, 48, 52, 49, 43, 41, 37, 35, 38, 44, 47, 50, 49, 45, 42],
-            "mood": [80, 78, 79, 76, 73, 75, 74, 71, 66, 69, 73, 76, 78, 80, 77, 72, 68, 67, 70, 74, 76, 78, 80, 77, 74, 71, 68, 69, 73, 75],
-        }
-    )
-
-
-def render_intelligence_center() -> None:
+def render_intelligence_center():
     apply_theia_theme()
-    render_page_header("THEIA Intelligence Center", "NASA evidence • analytics laboratory • predictive research • scientific reporting")
-
-    session = SessionLocal()
-    try:
-        studies = seed_nasa_studies(session)
-        analysis_records = get_analysis_records(session)
-        imported_sets = get_imported_datasets(session)
-        reports = get_report_documents(session)
-    finally:
-        session.close()
-
-    tabs = st.tabs(["NASA Data Hub", "Analytics Laboratory", "Predictive Research", "Scientific Reports"])
-
-    with tabs[0]:
-        render_nasa_data_hub()
-
-    with tabs[1]:
-        demo_df = _build_demo_dataset()
-        summary = summarize_dataframe(demo_df)
-        st.subheader("Exploratory data analysis")
-        st.write(summary["rows"], "rows")
-        st.json({
-            "missing_values": summary["missing_values"],
-            "duplicate_rows": summary["duplicate_rows"],
-            "numeric_columns": summary["numeric_columns"],
-        })
-
-        if "heart_rate" in demo_df.columns:
-            anomaly_results = detect_anomalies(demo_df, value_col="heart_rate")
-            st.write("Anomaly review")
-            st.json(anomaly_results)
-
-    with tabs[2]:
-        prediction_df = _build_demo_dataset()
-        readiness = assess_prediction_readiness(prediction_df, "fatigue", ["sleep_hours", "heart_rate", "mood"]) 
-        st.json(readiness)
-        if readiness["status"] == "ready_for_experiment":
-            st.json(build_demo_regression(prediction_df, "fatigue", ["sleep_hours", "heart_rate", "mood"]))
+    render_page_header("THEIA Intelligence Center", "Shared statistical engine | Reproducible SQLite snapshots")
+    with SessionLocal() as session:
+        astronaut = ensure_astronaut(session)
+        result = analyze(session, astronaut.id)
+        st.json({"snapshot": result["fingerprint"], "quality": result["quality"], "period": result["period"]})
+        metric = st.selectbox("Analysis indicator", sorted(ALLOWED_METRICS), key="intelligence_metric")
+        render_analysis(session, astronaut.id, metric, "intelligence")
+        st.subheader("Exploratory relationships")
+        if result["relationships"]:
+            st.dataframe(result["relationships"], hide_index=True)
         else:
-            st.info("This experimental prediction path is educational and intentionally conservative until the dataset is adequate for a valid evaluation.")
+            st.info("At least five paired UTC days with variable values are required. No relationship is inferred from unpaired data.")
+        st.caption("No predictive clinical model is trained or validated by this workflow.")
+        st.subheader("Report registry")
+        for record in get_report_documents(session)[:5]:
+            st.write(record.title, record.generated_at)
 
-    with tabs[3]:
-        st.subheader("Scientific records")
-        if studies:
-            st.write(f"Catalogued NASA studies: {len(studies)}")
-        if imported_sets:
-            st.write(f"Imported datasets: {len(imported_sets)}")
-        if analysis_records:
-            st.json([{
-                "analysis_type": item.analysis_type,
-                "model_name": item.model_name,
-                "result_summary": item.result_summary,
-                "confidence": item.confidence,
-            } for item in analysis_records[:5]])
-        else:
-            st.info("No analysis records have been generated yet.")
-
-        if reports:
-            st.write("Recent reports")
-            for item in reports[:5]:
-                st.caption(f"{item.report_type} • {item.title} • {item.generated_at.strftime('%Y-%m-%d')}" )
-        else:
-            st.info("No PDF or scientific report documents have been generated yet.")
-
-        st.caption("All predictive and scientific outputs in THEIA are labeled as experimental and must be interpreted with mission context, not as certified medical advice.")
+        if st.toggle("Open predictive research experiment", key="predictive_research"):
+            from database.measurements import measurement_frame
+            from analytics.predictive import build_demo_regression
+            frame = measurement_frame(session, astronaut.id)
+            frame = frame[(frame.data_quality_status == 'VALID') & frame.source.isin(['MANUAL_INPUT', 'MANUALLY_ENTERED_DATA', 'REAL_SENSOR_DATA'])].copy()
+            if frame.empty:
+                st.info("No validated mission observations for this experiment.")
+            else:
+                frame['day'] = frame.timestamp.dt.floor('D')
+                daily = frame.pivot_table(index='day', columns='metric_name', values='value', aggfunc='mean')
+                target = st.selectbox("Experimental target", daily.columns.tolist(), key="prediction_target")
+                features = st.multiselect("Experimental predictors", [c for c in daily.columns if c != target], key="prediction_features")
+                if st.button("Run educational regression", key="run_regression"):
+                    st.json(build_demo_regression(daily, target, features))
+                st.caption("Exploratory held-out random split, not a prospective time-series validation or a medical forecast.")

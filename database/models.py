@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from utils.timestamps import utc_now
+
 from datetime import datetime
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
@@ -31,6 +33,7 @@ class HealthMeasurement(Base):
     __tablename__ = "health_measurements"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    identity_key: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     astronaut_id: Mapped[int] = mapped_column(ForeignKey("astronaut_profiles.id"), index=True)
     metric_name: Mapped[str] = mapped_column(String(100), index=True)
     value: Mapped[float] = mapped_column(Float)
@@ -58,7 +61,7 @@ class DailyCheckin(Base):
     effort: Mapped[int | None] = mapped_column(Integer, nullable=True)
     general_observations: Mapped[str | None] = mapped_column(Text, nullable=True)
     symptoms: Mapped[str | None] = mapped_column(Text, nullable=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
     astronaut: Mapped[AstronautProfile] = relationship(back_populates="checkins")
 
@@ -77,7 +80,7 @@ class MissionContext(Base):
     nutrition: Mapped[str | None] = mapped_column(Text, nullable=True)
     environmental_observations: Mapped[str | None] = mapped_column(Text, nullable=True)
     relevant_events: Mapped[str | None] = mapped_column(Text, nullable=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
     astronaut: Mapped[AstronautProfile] = relationship(back_populates="contexts")
 
@@ -90,7 +93,7 @@ class MissionEvent(Base):
     event_type: Mapped[str] = mapped_column(String(100))
     description: Mapped[str] = mapped_column(Text)
     mission_day: Mapped[int] = mapped_column(Integer)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
 class NasaStudy(Base):
@@ -128,7 +131,7 @@ class ImportedDataset(Base):
     row_count: Mapped[int] = mapped_column(Integer, default=0)
     columns: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_label: Mapped[str] = mapped_column(String(150), default="USER_IMPORT")
-    imported_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    imported_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     status: Mapped[str] = mapped_column(String(60), default="UPLOADED")
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
@@ -141,7 +144,7 @@ class ScientificAnalysisRecord(Base):
     model_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     version: Mapped[str | None] = mapped_column(String(60), nullable=True)
     input_variables: Mapped[str] = mapped_column(Text)
-    run_timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    run_timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     result_summary: Mapped[str] = mapped_column(Text)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     dataset_source: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -153,7 +156,7 @@ class ScientificReportDocument(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     report_type: Mapped[str] = mapped_column(String(150))
-    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     title: Mapped[str] = mapped_column(String(255))
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -169,7 +172,7 @@ class ExerciseRecord(Base):
     duration_minutes: Mapped[int] = mapped_column(Integer)
     intensity: Mapped[str | None] = mapped_column(String(50), nullable=True)
     mission_day: Mapped[int] = mapped_column(Integer)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
 class NutritionRecord(Base):
@@ -178,7 +181,7 @@ class NutritionRecord(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     astronaut_id: Mapped[int] = mapped_column(ForeignKey("astronaut_profiles.id"), index=True)
     meal_name: Mapped[str] = mapped_column(String(200))
-    meal_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    meal_time: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     calories: Mapped[float | None] = mapped_column(Float, nullable=True)
     protein_g: Mapped[float | None] = mapped_column(Float, nullable=True)
     carbs_g: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -200,7 +203,7 @@ class AnomalyRecord(Base):
     score: Mapped[float] = mapped_column(Float, default=0.0)
     explanation: Mapped[str] = mapped_column(Text)
     confidence: Mapped[float] = mapped_column(Float, default=0.0)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
 class GuidanceEntry(Base):
@@ -235,4 +238,4 @@ class ModelAnalysisRecord(Base):
     version: Mapped[str] = mapped_column(String(50))
     metrics: Mapped[str] = mapped_column(Text)
     training_context: Mapped[str | None] = mapped_column(Text, nullable=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now)

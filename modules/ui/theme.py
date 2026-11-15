@@ -7,7 +7,6 @@ def apply_theia_theme() -> None:
     st.markdown(
         """
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
             :root {
                 --bg: #080B18;
@@ -335,6 +334,142 @@ def apply_theia_theme() -> None:
                 padding: 0.5rem;
             }
 
+            .cyber-hero {
+                position: relative;
+                overflow: hidden;
+                display: grid;
+                grid-template-columns: 1.5fr 1fr;
+                gap: 1rem;
+                padding: 1.3rem 1.4rem;
+                border-radius: 22px;
+                border: 1px solid rgba(196, 181, 253, 0.18);
+                background: linear-gradient(135deg, rgba(155, 123, 255, 0.14), rgba(85, 214, 232, 0.08), rgba(13, 18, 28, 0.92));
+                box-shadow: 0 24px 70px rgba(11, 17, 29, 0.45);
+                margin-bottom: 1rem;
+            }
+
+            .cyber-hero::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(circle at top right, rgba(85,214,232,0.18), transparent 30%),
+                            radial-gradient(circle at bottom left, rgba(155,123,255,0.20), transparent 35%);
+                pointer-events: none;
+            }
+
+            .hero-copy, .hero-stats {
+                position: relative;
+                z-index: 1;
+            }
+
+            .hero-kicker {
+                font-size: 0.72rem;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                color: var(--lavender);
+                font-weight: 700;
+                margin-bottom: 0.8rem;
+            }
+
+            .hero-title {
+                font-size: clamp(1.8rem, 3vw, 3rem);
+                font-weight: 800;
+                letter-spacing: -0.06em;
+                line-height: 1.02;
+                margin: 0 0 0.7rem 0;
+            }
+
+            .hero-body {
+                color: var(--muted);
+                line-height: 1.6;
+                max-width: 60ch;
+            }
+
+            .hero-stats {
+                display: grid;
+                align-content: center;
+                gap: 0.8rem;
+            }
+
+            .hero-stat-box {
+                background: rgba(10, 14, 24, 0.5);
+                border-radius: 16px;
+                border: 1px solid rgba(196, 181, 253, 0.12);
+                padding: 0.8rem 0.9rem;
+            }
+
+            .hero-stat-label {
+                color: var(--muted);
+                font-size: 0.7rem;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+            }
+
+            .hero-stat-value {
+                font-size: 1.6rem;
+                font-weight: 700;
+                margin-top: 0.3rem;
+            }
+
+            .portfolio-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 1rem;
+                margin-top: 0.8rem;
+            }
+
+            .project-card {
+                display: block;
+                text-decoration: none;
+                background: linear-gradient(180deg, rgba(21,29,53,0.9), rgba(11,18,33,0.92));
+                border: 1px solid rgba(196, 181, 253, 0.18);
+                border-radius: 18px;
+                padding: 1rem 1rem 0.9rem;
+                box-shadow: 0 20px 40px rgba(9, 12, 20, 0.3);
+                color: var(--text);
+                transition: transform 0.2s ease, border-color 0.2s ease;
+            }
+
+            .project-card:hover {
+                transform: translateY(-3px);
+                border-color: rgba(85,214,232,0.45);
+                text-decoration: none;
+            }
+
+            .project-tag {
+                display: inline-block;
+                padding: 0.22rem 0.52rem;
+                border-radius: 999px;
+                font-size: 0.6rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                background: rgba(155,123,255,0.12);
+                color: var(--lavender);
+                border: 1px solid rgba(155,123,255,0.28);
+            }
+
+            .project-name {
+                display: block;
+                margin-top: 0.8rem;
+                font-size: 1.05rem;
+                font-weight: 700;
+            }
+
+            .project-desc {
+                margin-top: 0.5rem;
+                color: var(--muted);
+                font-size: 0.8rem;
+                line-height: 1.5;
+            }
+
+            .project-link {
+                margin-top: 0.8rem;
+                color: var(--cyan);
+                font-size: 0.72rem;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+
             .stTabs [role="tablist"] {
                 gap: 0.5rem;
                 margin-bottom: 1rem;
@@ -395,7 +530,7 @@ def render_metric_card(title: str, value: str, unit: str, source: str, timestamp
         <div class='metric-card'>
             <div class='metric-header'>
                 <span>{title}</span>
-                <span class='quality-pill'>LIVE</span>
+                <span class='quality-pill'>RECORDED</span>
             </div>
             <div class='metric-value'>{value}<span>{unit}</span></div>
             {delta_text}

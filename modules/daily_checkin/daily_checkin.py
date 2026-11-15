@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from database.database import SessionLocal
+from database.repository import ensure_astronaut
 from database.models import DailyCheckin
 from database.repository import get_daily_checkins
 from modules.ui.theme import apply_theia_theme, render_page_header
@@ -32,7 +33,7 @@ def render_daily_checkin() -> None:
 
         if submitted:
             checkin = DailyCheckin(
-                astronaut_id=1,
+                astronaut_id=ensure_astronaut(session).id,
                 mission_day=128,
                 sleep_duration_hours=float(sleep_duration),
                 sleep_quality=int(sleep_quality),
@@ -44,6 +45,10 @@ def render_daily_checkin() -> None:
                 symptoms=symptoms,
             )
             session.add(checkin)
+            session.flush()
+            from database.measurements import insert_measurement
+            for metric, value, unit in [("sleep_hours", sleep_duration, "hours"), ("mood", mood, "score"), ("energy", energy, "score"), ("fatigue", fatigue, "score")]:
+                insert_measurement(session, checkin.astronaut_id, dict(metric_name=metric, value=value, unit=unit, timestamp=checkin.timestamp, source="MANUALLY_ENTERED_DATA", mission_context="Daily check-in"), commit=False)
             session.commit()
             st.success("Daily check-in saved and added to mission history.")
 
@@ -59,7 +64,7 @@ def render_daily_checkin() -> None:
                 "Timestamp": item.timestamp.strftime("%Y-%m-%d %H:%M")
             } for item in checkins]
             st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
-            st.dataframe(pd.DataFrame(records), use_container_width=True)
+            st.dataframe(pd.DataFrame(records), width="stretch")
         else:
             st.info("No check-ins recorded yet.")
     finally:
