@@ -71,6 +71,7 @@ def insert_measurement(session, astronaut_id, payload, commit=True):
 def update_measurement(session, astronaut_id, record_id, changes, actor='local operator', reason='Manual correction'):
     row = query_measurements(session, astronaut_id).filter_by(id=record_id).one()
     data = {key: getattr(row, key) for key in MeasurementPayload.model_fields}
+    captured_fields={key:data[key] for key in ('metric_name','value','unit','timestamp')}
     before=json.dumps(data,default=str,sort_keys=True)
     data.update(changes)
     payload = MeasurementPayload.model_validate(data)
@@ -83,7 +84,12 @@ def update_measurement(session, astronaut_id, record_id, changes, actor='local o
     for key, value in payload.model_dump().items():
         setattr(row, key, value)
     row.identity_key = hashlib.sha256(f"{astronaut_id}:{payload.metric_name}:{payload.timestamp.isoformat()}".encode()).hexdigest()
-    from database.models import MeasurementRevision
+    from database.models import MeasurementRevision,MeasurementProvenance
+    proof=session.get(MeasurementProvenance,row.id)
+    if proof is not None and proof.capture_verified and any(getattr(payload,key)!=value for key,value in captured_fields.items()):
+        metadata=json.loads(proof.details or '{}')
+        metadata.update(original_capture_verified=True,current_value_manually_corrected=True)
+        proof.details=json.dumps(metadata);proof.capture_verified=False
     session.add(MeasurementRevision(astronaut_id=astronaut_id,measurement_id=row.id,before_json=before,
         after_json=json.dumps(payload.model_dump(),default=str,sort_keys=True),actor=actor[:100],reason=reason))
     session.commit()

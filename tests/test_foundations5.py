@@ -73,6 +73,23 @@ def test_revision_and_source_protection(session):
     with pytest.raises(ValueError,match='active acquisition'):insert_measurement(session,1,dict(metric_name='heart_rate',value=72,unit='bpm',timestamp=datetime(2026,2,1),source='REAL_SENSOR_DATA'))
 
 
+def test_correction_does_not_claim_edited_value_was_captured(session):
+    import json
+    session.info['scenario']=False
+    batch=Batch('test-hrs','Fake backend, no physical validation',
+        [dict(metric_name='heart_rate',value=72,unit='bpm',timestamp=datetime(2026,3,2))],
+        'REAL_SENSOR_DATA','mock-capture',True)
+    result=ingest(session,1,batch);record_id=result['measurement_ids'][0]
+    proof=session.get(MeasurementProvenance,record_id)
+    assert proof.capture_verified
+    update_measurement(session,1,record_id,{'value':73},reason='Corrected test value')
+    assert not proof.capture_verified
+    assert json.loads(proof.details)['original_capture_verified']
+    assert session.get(HealthMeasurement,record_id).source=='REAL_SENSOR_DATA'
+    revision=session.query(MeasurementRevision).filter_by(measurement_id=record_id).one()
+    assert json.loads(revision.before_json)['value']==72
+
+
 def test_stable_folder_and_atomic_invalid_batch(session,tmp_path):
     folder=tmp_path/'incoming';folder.mkdir();path=folder/'measurements.csv'
     path.write_text('metric_name,value,unit,timestamp\nheart_rate,70,bpm,2026-02-01T00:00:00\n')
