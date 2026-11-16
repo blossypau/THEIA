@@ -11,6 +11,7 @@ VERIFIED_STUDY = {"id": "OSD-569", "title": "Inspiration4 whole-blood research",
 
 
 def render_nasa_data_hub():
+    from config.web import public_demo
     apply_theia_theme()
     render_page_header("NASA Data Hub", "Curated evidence catalogue | Local research tables | No live scientific feed")
     st.caption("Catalogue entries describe research topics; local HRP-* identifiers are THEIA catalogue keys, not NASA dataset accessions.")
@@ -28,7 +29,7 @@ def render_nasa_data_hub():
         selected=reference[reference.metric==parameter].copy();selected['timestamp']=pd.to_datetime(selected.timestamp)
         st.line_chart(selected,x='timestamp',y='value',y_label=selected.unit.iloc[0],alt='Historical NASA POWER terrestrial environmental reference')
         st.download_button('Download reproducible NASA reference CSV',reference.to_csv(index=False),'nasa-power-earth-reference.csv','text/csv')
-        if st.button('Fetch same NASA POWER period and register research table',key='fetch_power'):
+        if st.button('Fetch same NASA POWER period and register research table',key='fetch_power',disabled=public_demo()):
             import requests
             try:
                 with SessionLocal() as research_session:record,frame=fetch_power(research_session)
@@ -58,7 +59,7 @@ def render_nasa_data_hub():
         st.caption("Public omics research is not direct crew telemetry. Access and reuse terms must be reviewed at the source. No human subject files are downloaded automatically.")
         section_heading("Preclinical sample explorer", "PUBLIC NASA API / OSD-1")
         st.caption("Drosophila spaceflight immunology research (preclinical). This imports real sample characteristics and experimental factors, not human physiological measurements or gene expression values.")
-        if st.button("Fetch NASA OSD-1 sample metadata", key="fetch_osdr"):
+        if st.button("Fetch NASA OSD-1 sample metadata", key="fetch_osdr",disabled=public_demo()):
             from services.datasets import fetch_osdr_sample_table
             import requests
             try:
@@ -66,7 +67,7 @@ def render_nasa_data_hub():
                 st.success(f"{title}: {record.row_count} public sample records registered locally.")
             except (requests.RequestException, ValueError, KeyError) as exc:
                 session.rollback(); st.error(f"NASA public metadata unavailable: {exc}")
-        uploaded = st.file_uploader("Import scientific CSV/TSV", type=["csv", "tsv"], key="nasa_csv_upload")
+        uploaded = st.file_uploader("Import scientific CSV/TSV", type=["csv", "tsv"], key="nasa_csv_upload",disabled=public_demo())
         source_url = st.text_input("Dataset source URL or local provenance", value="USER_IMPORT", key="dataset_source")
         if uploaded and st.button("Validate and register research table", key="register_dataset"):
             try:

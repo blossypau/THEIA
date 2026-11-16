@@ -37,7 +37,7 @@
   </head>
   <body>
     <div class="viewer-shell">
-      <iframe id="viewer-frame" title="Anatomical viewer" src="http://127.0.0.1:3004/"></iframe>
+      <iframe id="viewer-frame" title="Anatomical viewer" src="about:blank"></iframe>
       <div id="status" class="status">Waiting for anatomical selection…</div>
     </div>
 
@@ -96,8 +96,10 @@
         if (event.source === window.parent && event.data?.type === 'streamlit:render') {
           const requested = event.data.args?.viewer_url;
           if (requested) {
-            const url = new URL(requested);
-            if (url.protocol === 'http:' && ['localhost','127.0.0.1'].includes(url.hostname)) {
+            const url = new URL(requested,window.location.href);
+            const sameOrigin=['http:','https:'].includes(url.protocol) && url.origin===window.location.origin;
+            const local=url.protocol==='http:' && ['localhost','127.0.0.1'].includes(url.hostname);
+            if (sameOrigin || local) {
               VALID_ORIGIN = url.origin;
               const frame = document.getElementById('viewer-frame');
               if (frame.src !== url.href) frame.src = url.href;

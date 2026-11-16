@@ -4,6 +4,8 @@ THEIA is a modular astronaut health monitoring and self-assessment platform desi
 
 ## THEIA 5.1: final experimental demonstration
 
+**Browser/public demo:** the same-origin web entry point now serves the actual anatomy model without a viewer on each visitor's computer. It is forced synthetic and cannot read normal storage. [Public deployment and free-hosting instructions](docs/PUBLIC_DEMO.md). A temporary tunnel is not a permanent cloud deployment.
+
 **Windows quick start / compartir con amigos:** download the [5.1 branch ZIP](https://github.com/blossypau/THEIA/archive/refs/heads/feature/theia-5-space-health-intelligence.zip), extract it and open `INICIAR_THEIA.cmd` with Python 3.14 installed. [Instrucciones en español](docs/INICIO_RAPIDO.md). The default `main` download is not the current PR branch; GitHub itself does not host the running app.
 
 Release validation, evidence and unresolved external limits: [final validation](docs/FINAL_RELEASE_VALIDATION.md). Start the **3–5 minute synthetic demonstration** with [NASA demo guide](docs/NASA_DEMO_GUIDE.md). This is a local experimental prototype, not a clinically validated or flight-certified system.

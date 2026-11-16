@@ -80,9 +80,10 @@ def _workspace_changed():
 
 
 def render_sidebar():
+    from config.web import public_demo
     with st.sidebar:
         st.markdown("<div class='brand-shell'><div class='brand-mark'><div class='brand-orbit'>✧</div><div class='brand-name'>THEIA</div></div><div class='brand-caption'>SPACE HEALTH COMMAND CENTER</div></div>", unsafe_allow_html=True)
-        st.toggle('Synthetic scenario workspace',key='scenario_mode',on_change=_workspace_changed,help='A separate SQLite database for this browser session. No real measurements are edited or reset.')
+        st.toggle('Synthetic scenario workspace',key='scenario_mode',on_change=_workspace_changed,disabled=public_demo(),help='A separate SQLite database for this browser session. Public demos use fictional data only.')
         st.toggle('Refresh local records',value=True,key='follow_local_records',help='Polls SQLite for new records every two seconds. This is not proof of a live sensor connection.')
         with SessionLocal() as session:
             profiles = session.query(AstronautProfile).order_by(AstronautProfile.id).all()
@@ -155,6 +156,8 @@ def render_application():
 def main():
     from database.database import session_factory_override
     from uuid import uuid4
+    from config.web import public_demo
+    if public_demo():st.session_state['scenario_mode']=True
     factory = None
     if st.session_state.get('scenario_mode'):
         from services.scenario import scenario_factory

@@ -11,6 +11,10 @@ from modules.ui.theme import apply_theia_theme, render_page_header
 
 
 def render_daily_checkin() -> None:
+    from config.web import public_demo
+    if public_demo():
+        st.info('PUBLIC SYNTHETIC DEMO: personal questionnaires are disabled. Explore the fictional sleep, mood and fatigue observations in Health Dashboard.')
+        return
     apply_theia_theme()
     render_page_header("Daily check-in", "Behavioral readiness • rest quality • mission self-reporting")
 

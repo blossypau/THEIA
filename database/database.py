@@ -25,6 +25,9 @@ _main_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 session_factory_override = ContextVar('session_factory_override', default=None)
 
 def SessionLocal(*args, **kwargs):
+    from config.web import public_demo
+    if public_demo() and session_factory_override.get() is None:
+        raise RuntimeError('Public demonstration cannot access normal database storage')
     factory = session_factory_override.get() or _main_factory
     return factory(*args, **kwargs)
 

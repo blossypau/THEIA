@@ -5,6 +5,7 @@ from functools import lru_cache
 from threading import RLock
 from pathlib import Path
 from uuid import UUID
+import os
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
@@ -40,7 +41,7 @@ _creation_lock=RLock()
 @lru_cache(maxsize=32)
 def scenario_factory(workspace_id, root=None):
     identifier=UUID(str(workspace_id)).hex
-    directory=Path(root or ROOT_DIR/'tmp/scenarios')/identifier
+    directory=Path(root or os.environ.get('THEIA_SCENARIO_ROOT') or ROOT_DIR/'tmp/scenarios')/identifier
     # lru_cache can call its wrapped function concurrently on the same cache miss.
     # Serialize schema creation and seed so overlapping Streamlit reruns cannot race.
     with _creation_lock:

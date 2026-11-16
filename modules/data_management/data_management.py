@@ -14,6 +14,11 @@ def _build_measurement_payload(form_data):
 
 
 def render_data_management():
+    from config.web import public_demo
+    if public_demo():
+        st.info('PUBLIC SYNTHETIC DEMO: file imports, real sources and manual edits are disabled. Use Mission Scenario Mode to acquire fictional observations automatically.')
+        with SessionLocal() as session:st.dataframe(measurement_frame(session,ensure_astronaut(session).id),hide_index=True)
+        return
     st.caption("Health data management workspace")
     st.caption("Timestamps use UTC. Mood, energy and fatigue use a 0-100 score. Blood pressure is a single recorded pressure value; record its context explicitly.")
     with SessionLocal() as session:

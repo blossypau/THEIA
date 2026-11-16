@@ -15,7 +15,7 @@ py -3.14 scripts/install_windows.py --pure-python-sqlalchemy
 .venv\Scripts\python.exe scripts/start_theia_services.py
 ```
 
-El dashboard, el escenario y la anatomia incluida no necesitan el build de OHIF. El visor DICOM requiere el repositorio/build externo descrito en README y `config/integration-versions.json`; si falta, muestra un aviso y no bloquea las otras pantallas. Descargar este ZIP no instala OHIF automaticamente.
+El atlas 3D esta incluido. El iniciador ahora descarga tambien un runtime OHIF publicado y verificado por SHA256 si no existe un build local; no requiere Node. Su procedencia/licencia figuran en `config/ohif-runtime.json`. Si falla la descarga, las otras pantallas siguen disponibles. No se descargan estudios de pacientes.
 
 Un enlace `127.0.0.1` o `localhost` de otra persona no permite acceder a su equipo. Para compartir una demo mediante navegador, sin instalar nada, hace falta un despliegue separado y preparado para datos exclusivamente sinteticos. Esta version mantiene los servicios privados en localhost por defecto.
 

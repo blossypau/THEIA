@@ -10,6 +10,10 @@ from database.repository import get_nutrition_records
 
 
 def render_nutrition():
+    from config.web import public_demo
+    if public_demo():
+        st.info('PUBLIC SYNTHETIC DEMO: personal nutrition entry is disabled. No nutritional measurements are invented for this scenario.')
+        return
     st.subheader("Nutrition Tracking")
     session = SessionLocal()
     try:

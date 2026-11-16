@@ -33,6 +33,10 @@ def render_timeline() -> None:
             else:st.info('No events match the current filters.')
         else:st.info('No mission events or observations recorded yet.')
 
+        from config.web import public_demo
+        if public_demo():
+            st.caption('PUBLIC SYNTHETIC DEMO: event entry is disabled; only recorded fictional events are shown.')
+            return
         st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
         with st.form("add_event"):
             event_type = st.text_input("Event type")
