@@ -69,6 +69,8 @@ Run `python -m pytest -q` in the virtual environment. Browser verification addit
 
 ## Installation
 
+For THEIA 5.1, use the pinned installation commands at the top. The version-specific sections below are historical; current provenance, engine and validation semantics are documented in `docs/FINAL_RELEASE_VALIDATION.md`.
+
 1. Open a terminal in the project root.
 2. Create a virtual environment:
 
