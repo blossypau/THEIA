@@ -47,7 +47,7 @@ def longitudinal_analysis(session, astronaut_id, periods=None, persist=True, sta
                   signals=[], limitations=LIMITATIONS)
     if not frame.empty:
         frame['day'] = frame.timestamp.dt.floor('D')
-        for (metric, source), group in frame.groupby(['metric_name', 'source']):
+        for (metric, source,provenance), group in frame.groupby(['metric_name', 'source','provenance_class']):
             daily = group.groupby('day').value.mean().sort_index()
             x = (daily.index - daily.index.min()).days.to_numpy(dtype=float)
             y = daily.to_numpy(dtype=float)
@@ -55,7 +55,7 @@ def longitudinal_analysis(session, astronaut_id, periods=None, persist=True, sta
             indexes = np.unique(np.linspace(0, len(y)-1, min(len(y), 1000), dtype=int))
             slope = float(theilslopes(y[indexes], x[indexes]).slope) if len(y) >= 5 else None
             days_span = int((daily.index.max()-daily.index.min()).days)+1
-            item = dict(metric=metric, source=source, unit=group.unit.iloc[0], observations=len(group),
+            item = dict(metric=metric, source=source,provenance_class=provenance, unit=group.unit.iloc[0], observations=len(group),
                         measurement_ids=[int(i) for i in group.id], days=len(daily), span_days=days_span,
                         observed_day_fraction=len(daily)/days_span, median=float(np.median(y)),
                         iqr=float(np.percentile(y,75)-np.percentile(y,25)), latest=float(y[-1]),

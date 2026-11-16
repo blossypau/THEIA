@@ -72,10 +72,18 @@ def analyze_nn(intervals, source, confirmed_nn=False, end_time_s=None, artifact_
 def save_nn_analysis(session, astronaut_id, result):
     if session.info.get('scenario') and result['source']!='SIMULATED_DATA':
         raise ValueError('Imported physiological signals are not permitted in the synthetic workspace')
+    if not session.info.get('scenario') and result['source']=='SIMULATED_DATA':raise ValueError('Synthetic NN analysis requires isolated scenario storage')
     from database.models import AstronautProfile
     if session.get(AstronautProfile,astronaut_id) is None:
         raise ValueError('Unknown astronaut')
-    key=f"profile:{astronaut_id}:{result['source']}:{result['sha256']}"
+    checked=analyze_nn(result['nn_ms'],result['source'],True,end_time_s=result.get('end_time_s'),artifact_flags=result.get('artifact_flags'))
+    if checked['metrics']!=result['metrics'] or checked['sha256']!=result['sha256']:raise ValueError('NN results must match the supplied intervals')
+    if result.get('recording_start'):
+        from datetime import datetime
+        from utils.measurement_schema import MeasurementPayload
+        result=dict(result,recording_start=MeasurementPayload.validate_time(datetime.fromisoformat(result['recording_start'])).isoformat())
+    identity=hashlib.sha256(json.dumps(result,sort_keys=True).encode()).hexdigest()
+    key=f"profile:{astronaut_id}:{result['source']}:{identity}"
     row=session.query(ScientificAnalysisRecord).filter_by(analysis_type='nn_time_domain',version=result['library_version'],dataset_source=key).first()
     if row is None:
         row=ScientificAnalysisRecord(analysis_type='nn_time_domain',model_name='THEIA NumPy subset / NeuroKit2 temporal formulas',version=result['library_version'],

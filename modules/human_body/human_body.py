@@ -23,7 +23,7 @@ def render_human_body():
     from services.anatomy import structure_system
     from services.analysis_views import metric_view, history_figure
     apply_theia_theme()
-    render_page_header("Human Body Explorer", "Holographic anatomy / real structures / personal physiological context")
+    render_page_header("Human Body Explorer", "Educational anatomical atlas / not a personalized digital twin")
     registry = structure_registry()
     if not registry:
         st.warning("Anatomical model is missing. See the viewer setup in README.")
@@ -110,7 +110,7 @@ def render_human_body():
                             figure=history_figure(metric_data);figure.update_layout(height=210,showlegend=False,margin=dict(l=8,r=8,t=15,b=12))
                             st.plotly_chart(figure,key=f'anatomy_signal_{metric}',width='stretch')
                             for baseline in metric_data['baselines']:
-                                st.caption(f"{baseline['cohort']} · baseline {baseline['mean']:.2f} ± {baseline['std']:.2f} {baseline['unit']} · {len(baseline['anomalies'])} flags")
+                                st.caption(f"{baseline['cohort']} · retrospective period mean {baseline['mean']:.2f} ± {baseline['std']:.2f} {baseline['unit']} · {len(baseline['anomalies'])} statistical flags; not an independent baseline")
                     if not view['metrics']:st.info('No relevant direct physiological indicators configured.')
             if identifier:
                 st.info(CONTEXT[structure_system(identifier)])

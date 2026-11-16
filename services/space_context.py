@@ -196,12 +196,16 @@ def demo_context(session,astronaut_id,day):
 
 def phase_comparison(session,astronaut_id,metric='heart_rate'):
     frame=measurement_frame(session,astronaut_id,metric);result=[]
+    from intelligence.engine import analyze
+    valid_ids={i for item in analyze(session,astronaut_id,persist=False)['metrics'].values() for i in item['measurement_ids']}
+    frame=frame[frame.id.isin(valid_ids)]
     for row in context_rows(session,astronaut_id,'gravity'):
+        if row.quality!='VALID' or row.end is None:continue
         p=json.loads(row.payload)
         subset=frame[(frame.timestamp>=row.timestamp)&(frame.timestamp<(row.end or row.timestamp))]
-        for source,group in subset.groupby('source'):
+        for (source,provenance),group in subset.groupby(['source','provenance_class']):
             result.append(dict(phase=p['phase'],environment=p['environment'],context_source=row.source,measurement_source=source,
-                start=row.timestamp.isoformat(),end=row.end.isoformat() if row.end else None,samples=len(group),median=float(group.value.median()),unit=group.unit.iloc[0]))
+                provenance_class=provenance,start=row.timestamp.isoformat(),end=row.end.isoformat() if row.end else None,samples=len(group),median=float(group.value.median()),unit=group.unit.iloc[0]))
     return result
 
 
@@ -238,7 +242,8 @@ def import_context_csv(session,astronaut_id,content,kind):
         values={k:v for k,v in row.to_dict().items() if pd.notna(v)}
         timestamp=values.pop('timestamp',None);end=values.pop('end',None)
         instrument=values.pop('instrument','Imported context file; source declared')
-        quality=values.pop('quality','VALID');values.pop('source',None)
+        quality=values.pop('quality','VALID');declared=values.pop('source',None)
+        if declared=='SIMULATED_DATA':raise ValueError('Synthetic context cannot be imported into normal storage')
         items.append(ContextPayload.model_validate(dict(kind=kind,timestamp=timestamp,end=end,instrument=instrument,quality=quality,source='IMPORTED_DATA',payload=values)))
     try:
         rows=[add_context(session,astronaut_id,item.model_dump(),commit=False) for item in items]

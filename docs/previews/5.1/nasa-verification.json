@@ -1,0 +1,16 @@
+{
+  "OSD-1": {
+    "title": "Expression data from drosophila melanogaster",
+    "rows": 18,
+    "classification": "NASA_PUBLIC_RESEARCH_DATA",
+    "scope": "Metadata only; Drosophila, not human physiology",
+    "license": "No explicit license field in returned study metadata; source terms and citation required; raw assay files not redistributed"
+  },
+  "NASA_POWER": {
+    "rows": 21,
+    "classification": "NASA_PUBLIC_RESEARCH_DATA",
+    "pinned_rows": 21,
+    "scope": "Earth gridded meteorology only"
+  },
+  "astronaut_measurements_created": 0
+}

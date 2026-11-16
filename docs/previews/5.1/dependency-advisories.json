@@ -1,0 +1,393 @@
+{
+  "checked_at": "2026-11-15T23:59:07.612925+00:00",
+  "source": "PyPI release JSON vulnerability metadata",
+  "scope": "Published advisories for exact lock versions, not proof of absence of vulnerabilities or a source-code security audit",
+  "packages": [
+    {
+      "name": "pip",
+      "version": "26.3",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "altair",
+      "version": "6.3.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "annotated-types",
+      "version": "0.8.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "anyio",
+      "version": "4.16.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "attrs",
+      "version": "26.1.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "bleak",
+      "version": "3.1.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "certifi",
+      "version": "2026.10.23",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.2",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "click",
+      "version": "8.5.1",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "cloudpickle",
+      "version": "3.1.2",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "colorama",
+      "version": "0.4.6",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "h11",
+      "version": "0.16.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "idna",
+      "version": "3.20",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.1",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "itsdangerous",
+      "version": "2.2.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "jinja2",
+      "version": "3.1.6",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "joblib",
+      "version": "1.6.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "jsonschema",
+      "version": "4.26.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "jsonschema-specifications",
+      "version": "2025.9.1",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "markupsafe",
+      "version": "3.0.4",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "narwhals",
+      "version": "2.28.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "numpy",
+      "version": "2.5.4",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pandas",
+      "version": "3.1.1",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pillow",
+      "version": "13.0.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "plotly",
+      "version": "7.1.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pluggy",
+      "version": "1.7.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "protobuf",
+      "version": "7.36.2",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pyarrow",
+      "version": "26.0.1",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pydantic",
+      "version": "2.14.3",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pydantic-core",
+      "version": "2.50.4",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pydeck",
+      "version": "0.9.3",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pydicom",
+      "version": "3.0.2",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pygments",
+      "version": "2.21.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pypdf",
+      "version": "7.1.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "pytest",
+      "version": "9.2.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "python-dateutil",
+      "version": "4.0.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "python-multipart",
+      "version": "0.0.33",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "referencing",
+      "version": "0.37.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "reportlab",
+      "version": "5.1.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "rpds-py",
+      "version": "2026.9.1",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "scikit-learn",
+      "version": "1.9.1",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "scipy",
+      "version": "1.18.1",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "sqlalchemy",
+      "version": "2.1.8",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "starlette",
+      "version": "1.10.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "streamlit",
+      "version": "1.67.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "threadpoolctl",
+      "version": "3.8.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "typing-extensions",
+      "version": "4.16.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "typing-inspection",
+      "version": "0.4.5",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "tzdata",
+      "version": "2026.6",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "urllib3",
+      "version": "2.8.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.54.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "watchdog",
+      "version": "7.1.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "websockets",
+      "version": "17.4",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "winrt-runtime",
+      "version": "4.1.0",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "winrt-windows-devices-bluetooth",
+      "version": "4!10.0.28000.2957",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "winrt-windows-devices-bluetooth-advertisement",
+      "version": "4!10.0.28000.2957",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "winrt-windows-devices-bluetooth-genericattributeprofile",
+      "version": "4!10.0.28000.2957",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "winrt-windows-devices-enumeration",
+      "version": "4!10.0.28000.2957",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "winrt-windows-devices-radios",
+      "version": "4!10.0.28000.2957",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "winrt-windows-foundation",
+      "version": "4!10.0.28000.2957",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "winrt-windows-foundation-collections",
+      "version": "4!10.0.28000.2957",
+      "status": "queried",
+      "advisories": []
+    },
+    {
+      "name": "winrt-windows-storage-streams",
+      "version": "4!10.0.28000.2957",
+      "status": "queried",
+      "advisories": []
+    }
+  ],
+  "unverified": 0,
+  "affected_packages": 0
+}

@@ -1,0 +1,42 @@
+{
+  "automatic_100_measurements": true,
+  "five_hazards_connected": true,
+  "local_outbox_sync": true,
+  "anatomy_rotation_zoom_opacity": true,
+  "anatomy_826_isolation_selection": true,
+  "anatomy_restore": true,
+  "public_ct_rendered_inside_theia": true,
+  "pdf_values_context_hrv": true,
+  "profile_switch_isolation": true,
+  "pages_verified": [
+    "Mission Overview",
+    "Scientific Analysis",
+    "Mission Scenario Mode",
+    "Health Dashboard",
+    "Health Monitoring",
+    "Data Management",
+    "Human Body Explorer",
+    "Medical Visualization Lab",
+    "NASA Data Hub",
+    "THEIA Intelligence Center",
+    "Mission Timeline",
+    "Daily Check-in",
+    "Personal Baseline",
+    "Intelligent Analysis",
+    "Nutrition",
+    "Health Guidance",
+    "Mission Reports",
+    "Settings"
+  ],
+  "reset_preserves_normal_storage": true,
+  "mobile": [
+    390,
+    390
+  ],
+  "tablet": [
+    724,
+    724
+  ],
+  "normal_provenance_unchanged": true,
+  "javascript_errors": []
+}

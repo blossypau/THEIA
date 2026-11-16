@@ -29,9 +29,8 @@ def _signal(session,astronaut_id,metric,label):
         else:
             latest=frame.iloc[-1]
             st.metric(label,f'{latest.value:g} {latest.unit}',chart_data=frame.value.tail(20).tolist(),chart_type='line')
-            from database.models import MeasurementProvenance
-            proof=session.get(MeasurementProvenance,int(latest.id))
-            st.caption('Recorded HRS capture; calibration not verified' if proof is not None and proof.capture_verified else 'Declared/imported/synthetic source; no physical capture verified')
+            st.caption(latest.provenance_class)
+            st.caption('Transport capture only / HARDWARE NOT VALIDATED' if latest.provenance_class=='VERIFIED_DEVICE_CAPTURE' else 'NO VERIFIED SOURCE / declared observation')
             st.caption(f"{latest.source} · {latest.timestamp:%d %b %H:%M} UTC")
 
 

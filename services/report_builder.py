@@ -29,7 +29,9 @@ def report_input_fingerprint(session,astronaut_id,start=None,end=None):
     historical=historical_analysis(session,astronaut_id,start,end,persist=False)
     context=[r.identity_key for r in context_rows(session,astronaut_id)]
     nn=[(r.id,r.result_summary) for r in session.query(ScientificAnalysisRecord).filter_by(analysis_type='nn_time_domain').all() if (r.dataset_source or '').startswith(f'profile:{astronaut_id}:')]
-    return hashlib.sha256(json.dumps([core['fingerprint'],historical['fingerprint'],context,nn,'report5']).encode()).hexdigest()
+    from services.provenance import profile_provenance
+    provenance=profile_provenance(session,astronaut_id)
+    return hashlib.sha256(json.dumps([core['fingerprint'],historical['fingerprint'],context,nn,provenance,'report5.1'],default=str,sort_keys=True).encode()).hexdigest()
 
 
 def generate_pdf_report(session=None,output_path=None,astronaut_id=None,start=None,end=None):
@@ -59,7 +61,8 @@ def generate_pdf_report(session=None,output_path=None,astronaut_id=None,start=No
                 if not recording:continue
                 when=datetime.fromisoformat(recording)
                 if start is not None and when<start.replace(tzinfo=None):continue
-                if end is not None and when>end.replace(tzinfo=None):continue
+                from datetime import timedelta
+                if end is not None and when+timedelta(seconds=payload['duration_seconds'])>end.replace(tzinfo=None):continue
             nn.append(payload)
             if len(nn)==1:break
         root=Path(session.info['scenario_dir'])/'reports' if session.info.get('scenario') else ROOT_DIR/'data/processed'
@@ -72,7 +75,9 @@ def generate_pdf_report(session=None,output_path=None,astronaut_id=None,start=No
         styles['Heading2'].textColor=CYAN;styles['BodyText'].fontSize=9;styles['BodyText'].leading=13
         story: list[Any]=[]
         def text(value,style='BodyText'):
-            story.append(Paragraph(escape(str(value)),styles[style]));story.append(Spacer(1,5))
+            story.append(Paragraph(escape(str(value)),styles[style]))
+            gap=Spacer(1,5);cast(Any,gap).keepWithNext=style in {'Heading1','Heading2','Title'}
+            story.append(gap)
         def heading(value):text(value,'Heading1')
         def table(headers,rows,widths=None):
             if not rows:text('NO DATA for this section.');return
@@ -100,11 +105,16 @@ def generate_pdf_report(session=None,output_path=None,astronaut_id=None,start=No
         text('Action plan','Heading2');text('Review provenance, acquisition conditions and missing coverage. Discuss material findings with qualified mission/research staff; this software does not prescribe treatment or autonomous mission decisions.')
         text('Analysis snapshot: '+analysis['fingerprint'],'Caption5')
         text('Historical snapshot: '+history['fingerprint'],'Caption5')
-        bundle_hash=hashlib.sha256(json.dumps([analysis['fingerprint'],history['fingerprint'],[r.identity_key for r in context],nn,'report5.0-r1'],sort_keys=True).encode()).hexdigest()
+        from services.provenance import profile_provenance,BOUNDARY
+        provenance=[r for r in profile_provenance(session,astronaut.id) if r['measurement_id'] in set(frame.id)]
+        bundle_hash=hashlib.sha256(json.dumps([analysis['fingerprint'],history['fingerprint'],[r.identity_key for r in context],nn,provenance,'report5.1-r1'],sort_keys=True,default=str).encode()).hexdigest()
         text('Report bundle SHA256: '+bundle_hash,'Caption5')
         story.append(PageBreak())
         heading('Data quality and provenance')
         table(['Source','Records'],[[k,v] for k,v in analysis['quality']['sources'].items()],[400,128])
+        table(['Central provenance classification','Records'],[[k,v] for k,v in analysis['quality']['provenance'].items()],[400,128])
+        text(BOUNDARY,'Caption5')
+        text('Receipt timestamps, device/batch declarations and full correction evidence are available in the profile provenance export. UNKNOWN_UNVERIFIED is retained for records without an envelope.','Caption5')
         text('VALID means schema/range/unit checks. It does not certify calibration, artifact-free acquisition or clinical validity. Existing sensor-labeled records without capture receipts remain declared provenance.')
         heading('Independent personal reference')
         text(history['limitations'])
@@ -112,11 +122,13 @@ def generate_pdf_report(session=None,output_path=None,astronaut_id=None,start=No
             [f"{i['metric']} / {i['source']} ({i['unit']})",' / '.join(f'{v:.3f}' if v is not None else 'NO DATA' for v in [i['mean'],i['median'],i['std']]),
              f"{i['samples']} / {i['days']} ({i['status']})",'; '.join(f"{o['timestamp']}: {o['value']:g}; delta={o['delta']}; flagged={o['flagged']}" for o in i['observations'][-3:])]
             for i in history['signals']],[135,140,90,163])
+        science_start=len(story)
         heading('Source-separated longitudinal context')
         text(science['method'])
         table(['Signal / source','Median / IQR','Observed days','Theil-Sen / day'],[
             [f"{i['metric']} / {i['source']} ({i['unit']})",f"{i['median']:.3f} / {i['iqr']:.3f}",f"{i['days']}/{i['span_days']}",i['theil_sen_per_day'] if i['theil_sen_per_day'] is not None else 'Insufficient days'] for i in science['signals']],[190,115,100,123])
         text(science['limitations'],'Caption5')
+        story[science_start:]=[KeepTogether(story[science_start:])]
         for key,item in analysis['metrics'].items():
             block_start=len(story)
             text(f"{item['metric']} / {item['cohort']} / {item['unit']}",'Heading2')
@@ -142,6 +154,7 @@ def generate_pdf_report(session=None,output_path=None,astronaut_id=None,start=No
             table(['Statistic','Value','Unit'],[[k,f'{v:.4f}','%' if k=='HRV_pNN50' else 'ms'] for k,v in item['metrics'].items()])
             text(item['quality']);text(item['limitations'],'Caption5');text('NN input SHA256: '+item['sha256'],'Caption5')
         story[nn_start:]=[KeepTogether(story[nn_start:])]
+        context_start=len(story)
         heading('Recorded mission context')
         def context_description(row):
             p=json.loads(row.payload)
@@ -149,16 +162,19 @@ def generate_pdf_report(session=None,output_path=None,astronaut_id=None,start=No
             if row.kind=='communications':return p['state']+' / assumed path '+str(p.get('distance_km'))+' km (SIMULATED)'
             if row.kind=='radiation':return f"{p['origin']} / {p['basis']} / {p['quantity']}: {p['value']} {p['unit']}; uncertainty {p.get('uncertainty') if p.get('uncertainty') is not None else 'not supplied'}"
             return f"{p.get('metric','Recorded context')}: {p.get('value','NO DATA')} {p.get('unit','self-report units')}"
-        table(['Kind / time UTC','Source / quality','Recorded observation'],[[f'{r.kind} / {r.timestamp}',f'{r.source} / {r.quality}',context_description(r)] for r in context[-15:]],[120,125,283])
-        text(f'{len(context)} context records in selected scope; latest 15 shown. Instruments: '+', '.join(sorted({r.instrument for r in context}))+'. Full records remain in local SQLite.','Caption5')
+        table(['Kind / time UTC','Source / quality','Recorded observation'],[[f'{r.kind} / {r.timestamp}',f'{r.source} / {r.quality}',context_description(r)] for r in context[-9:]],[120,125,283])
+        text(f'{len(context)} context records in selected scope; latest 9 shown. Instruments: '+', '.join(sorted({r.instrument for r in context}))+'. Full records remain in local SQLite.','Caption5')
+        story[context_start:]=[KeepTogether(story[context_start:])]
         dose=radiation_summary([r for r in context if r.kind=='radiation'])
         if dose:
+            dose_start=len(story)
             text('Dosimetry (not a risk estimate)','Heading2')
             table(['Source / instrument / origin','Basis / unit','Integrated intervals','Cumulative change / quality'],[
-                [f"{i['source']} / {i['instrument']} / {i['origin']}",f"{i['basis']} / {i['unit']}",i['interval_sum'] if i['interval_sum'] is not None else 'NO VALID SUM',
-                 f"{i['cumulative_change']} / overlaps={i['overlap']}; counter inconsistency={i['counter_reset_or_inconsistent']}"] for i in dose],[180,85,100,163])
+                [f"{i['source']} / {i['instrument']} / {i['origin']}",f"{i['basis']} / {i['unit']}",f"{i['interval_sum']:.6g}" if i['interval_sum'] is not None else 'NO VALID SUM',
+                 (f"{i['cumulative_change']:.6g}" if i['cumulative_change'] is not None else 'NO COUNTER DATA')+f" / overlaps={i['overlap']}; counter inconsistency={i['counter_reset_or_inconsistent']}"] for i in dose],[180,85,100,163])
             text('Gy and Sv are not interconverted. Cumulative readings are differenced, not added; overlapping intervals refuse a sum. Unreported uncertainty is not zero.','Caption5')
             for item in dose:text(f"{item['origin']} / {item['source']}: recorded intervals {item['recorded_hours']} h within {item['window_hours']} h span. No exposure is inferred for uncovered time.",'Caption5')
+            story[dose_start:]=[KeepTogether(story[dose_start:])]
         else:text('NO RECORDED DOSIMETRY. No radiation exposure or individual risk is inferred.')
         heading('Exploratory relationships')
         if not analysis['relationships']:text('Insufficient paired days for correlations.')
@@ -179,11 +195,11 @@ def generate_pdf_report(session=None,output_path=None,astronaut_id=None,start=No
         story[reference_start:]=[KeepTogether(story[reference_start:])]
         def footer(canvas,doc):
             canvas.setStrokeColor(CYAN);canvas.line(42,39,570,39);canvas.setFillColor(INK);canvas.setFont('Helvetica',8)
-            canvas.drawString(42,25,'THEIA 5.0 / experimental scientific observations');canvas.drawRightString(570,25,f'Page {doc.page}')
+            canvas.drawString(42,25,'THEIA 5.1 / experimental scientific observations');canvas.drawRightString(570,25,f'Page {doc.page}')
         SimpleDocTemplate(str(path),pagesize=letter,rightMargin=42,leftMargin=42,topMargin=38,bottomMargin=52,pageCompression=0).build(story,onFirstPage=footer,onLaterPages=footer)
         save_scientific_report(session,'mission_health_pdf',f'THEIA Mission Health Report - {astronaut.name}',
             json.dumps({'fingerprint':analysis['fingerprint'],'historical_fingerprint':history['fingerprint'],'report_bundle_sha256':bundle_hash,'astronaut_id':astronaut.id,
-                'measurement_ids':frame.id.tolist(),'context_ids':[r.id for r in context]}),str(path),'NASA HRP hazards; local observations; documented statistical methods')
+                'measurement_ids':frame.id.tolist(),'context_ids':[r.id for r in context],'provenance':provenance},default=str),str(path),'NASA HRP hazards; local observations; documented statistical methods')
         return path
     finally:
         if own:session.close()

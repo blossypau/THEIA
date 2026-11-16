@@ -1,5 +1,6 @@
 """Recorded events and observations, never invented physiological transitions."""
 import json
+from typing import Any
 from database.models import MissionEvent,DailyCheckin
 from database.measurements import query_measurements
 from services.space_context import context_rows
@@ -7,10 +8,13 @@ from intelligence.historical import historical_analysis
 
 
 def timeline_events(session,astronaut_id):
-    result=[]
+    result: list[dict[str,Any]]=[]
     for row in query_measurements(session,astronaut_id).all():
         result.append(dict(key=f'measurement:{row.id}',kind='measurement',timestamp=row.timestamp,source=row.source,
             title=f'{row.metric_name}: {row.value:g} {row.unit}',details={'measurement_id':row.id,'quality':row.data_quality_status}))
+    from services.provenance import profile_provenance
+    provenance={r['measurement_id']:r for r in profile_provenance(session,astronaut_id)}
+    for item in result:item['details'].update(provenance[item['details']['measurement_id']])
     for row in session.query(MissionEvent).filter_by(astronaut_id=astronaut_id).all():
         result.append(dict(key=f'event:{row.id}',kind='event',timestamp=row.timestamp,
             source='SIMULATED_DATA' if session.info.get('scenario') else 'MANUALLY_ENTERED_DATA',title=row.event_type,details={'description':row.description}))

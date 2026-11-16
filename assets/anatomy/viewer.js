@@ -225,7 +225,11 @@ function loadModel() {
                 }
             });
             if (pendingTheiaCommand) { applyTheiaCommand(pendingTheiaCommand); pendingTheiaCommand=null; }
-            window.__THEIA_MODEL_DEBUG__ = { meshNames, count: meshNames.length };
+            window.__THEIA_MODEL_DEBUG__ = { meshNames, count: meshNames.length,
+                snapshot: () => ({camera:camera.position.toArray(),target:controls.target.toArray(),
+                    visible:clickableObjects.filter(o=>o.visible).length,
+                    opacity:clickableObjects.map(o=>o.material.opacity),
+                    selected:selectedObject?.userData.theiaIdentifier || null}) };
             document.getElementById('model-status').textContent = `${meshNames.length} structures loaded`;
             console.log('Model loaded successfully', meshNames.slice(0, 50));
         },

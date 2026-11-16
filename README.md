@@ -2,7 +2,22 @@
 
 THEIA is a modular astronaut health monitoring and self-assessment platform designed for long-duration missions. It combines local health tracking, trend analysis, rule-based anomaly detection, and a modern dashboard for crew health awareness.
 
-## THEIA 5.0: reproducible experimental mission
+## THEIA 5.1: final experimental demonstration
+
+Release validation, evidence and unresolved external limits: [final validation](docs/FINAL_RELEASE_VALIDATION.md). Start the **3–5 minute synthetic demonstration** with [NASA demo guide](docs/NASA_DEMO_GUIDE.md). This is a local experimental prototype, not a clinically validated or flight-certified system.
+
+The six centralized provenance classes are visible on every workspace and exported with measurement/receipt timestamps, batch, acquisition method and revision evidence. Existing records without the new envelope remain UNKNOWN_UNVERIFIED. Declared source, transport capture, device authenticity and biomedical accuracy are separate concepts. See [data provenance](docs/DATA_PROVENANCE.md).
+
+The default server binds to loopback. On Windows installations where Application Control rejects SQLAlchemy's optional native extension, use its official pure-Python build (same pinned version), without changing Windows security settings:
+
+```powershell
+py -3.14 scripts/install_windows.py --pure-python-sqlalchemy
+.venv\Scripts\python.exe scripts/start_theia_services.py
+```
+
+The installer also accepts `--venv C:\path\to\environment`. It checks runtime imports and dependencies. Without a native-extension compatibility issue, omit `--pure-python-sqlalchemy`. OHIF remains an external, separately built dependency; Python installation alone does not install its JavaScript build. Read [known limitations and recovery](docs/KNOWN_LIMITATIONS.md).
+
+## Reproducible mission workflow
 
 This release adds independent historical references, auditable acquisition and five-hazard mission context. It is an experimental research prototype, not a diagnostic system. Physical sensors have not been validated. NASA references are distinguished from the public NASA POWER Earth-weather dataset and from simulated spacecraft conditions.
 

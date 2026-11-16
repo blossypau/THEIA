@@ -1,3 +1,7 @@
+[server]
+address = "127.0.0.1"
+folderWatchBlacklist = [".venv", "tmp", "third_party", "data", "output"]
+
 [theme]
 base = "dark"
 primaryColor = "#45E0F5"

@@ -105,7 +105,7 @@ def render_acquisition(session,astronaut_id):
             st.caption('CSV: metric_name,value,unit,timestamp; stable across polls and newline-terminated. Files are not moved or deleted. API: JSON list of the same fields; source is IMPORTED_DATA, not verified sensor capture.')
         else:
             from integrations.bluetooth_sensor import BluetoothSensor
-            st.caption('Only compatible Bluetooth SIG HRS devices. No physical device has been validated for this release. Raw RR values are not automatically treated as reviewed NN intervals.')
+            st.caption('HARDWARE NOT VALIDATED. Compatible Bluetooth SIG HRS only. A connection does not authenticate identity or certify measurement accuracy. Raw RR is not automatically reviewed NN.')
             if st.button('Discover compatible HRS devices',key='ble_scan'):
                 try:
                     with st.spinner('Scanning local Bluetooth adapter...'):st.session_state['ble_devices']=asyncio.run(BluetoothSensor.discover())

@@ -16,6 +16,21 @@ class SchemaMigration(Base):
     applied_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
 
 
+class MeasurementOrigin(Base):
+    """5.1 additive envelope. Missing historical envelopes never imply verification."""
+    __tablename__ = 'measurement_origins'
+    measurement_id: Mapped[int] = mapped_column(ForeignKey('health_measurements.id'), primary_key=True)
+    received_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    declared_source: Mapped[str] = mapped_column(String(50))
+    classification: Mapped[str] = mapped_column(String(50))
+    device_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    batch_id: Mapped[str] = mapped_column(String(100))
+    acquisition_method: Mapped[str] = mapped_column(String(100))
+    validation_status: Mapped[str] = mapped_column(String(100))
+    is_simulation: Mapped[bool] = mapped_column(default=False)
+    evidence_json: Mapped[str] = mapped_column(Text, default='{}')
+
+
 class MeasurementRevision(Base):
     __tablename__ = 'measurement_revisions'
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -14,6 +14,7 @@ from modules.ui.theme import apply_theia_theme, render_page_header
 def render_timeline() -> None:
     apply_theia_theme()
     render_page_header("Mission timeline", "System events • workload markers • crew activity chronology")
+    if st.session_state.pop('timeline_saved',False):st.success('Mission event added.')
 
     session = SessionLocal()
     try:
@@ -48,6 +49,7 @@ def render_timeline() -> None:
             )
             session.add(event)
             session.commit()
-            st.success("Mission event added.")
+            st.session_state['timeline_saved']=True
+            st.rerun()
     finally:
         session.close()

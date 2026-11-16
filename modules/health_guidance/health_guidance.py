@@ -18,6 +18,7 @@ def render_health_guidance():
     from services.space_context import hazard_inventory
     with SessionLocal() as session:
         profile=ensure_astronaut(session)
+        profile_id=profile.id
         review=historical_analysis(session,profile.id)
         st.subheader('Evidence review, not treatment')
         for item in review['signals']:
@@ -54,5 +55,5 @@ def render_health_guidance():
                 """,
                 unsafe_allow_html=True,
             )
-            st.checkbox(f"Mark task: {entry['topic']}", key=f"guidance_task_{index}")
+            st.checkbox(f"Mark task for this browser session: {entry['topic']}", key=f"guidance_task_{profile_id}_{bool(st.session_state.get('scenario_mode'))}_{index}")
             st.markdown("---")

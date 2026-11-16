@@ -70,7 +70,7 @@ def render_context(session,astronaut_id):
         for url in GRAVITY_SOURCES:st.link_button('Physical reference',url)
         comparison=phase_comparison(session,astronaut_id)
         if comparison:st.dataframe(comparison,hide_index=True)
-        st.caption('Phase comparisons report only observations inside recorded intervals; sources remain explicit. No bone-density, balance or muscle-performance measurement is invented.')
+        st.caption('Phase comparisons require VALID observations and a recorded start/end interval; point contexts without an end cannot define a comparison period. Sources remain explicit. No bone-density, balance or muscle-performance measurement is invented.')
     if selected=='Distance from Earth':
         distance=st.number_input('Assumed geometric signal path (km)',min_value=0.,value=384400.,key='comms_distance')
         st.metric('Ideal one-way propagation',f'{propagation_seconds(distance):.3f} s')
@@ -86,7 +86,9 @@ def render_context(session,astronaut_id):
     if selected=='Hostile/Closed Environments':
         from services.space_context import environment_associations
         associations=environment_associations(session,astronaut_id)
-        if associations:st.dataframe(associations,hide_index=True)
+        if associations:
+            st.caption('EXPLORATORY ASSOCIATION / not causal or clinically validated')
+            st.dataframe(associations,hide_index=True)
         else:st.info('No compatible variable environmental/physiological signals on five paired UTC days with the same source. No association is inferred.')
     if not session.info.get('scenario'):
         with st.expander('Register declared context (not verified sensor acquisition)'):

@@ -1,7 +1,7 @@
 {
-  "theia": "5.0",
+  "theia": "5.1",
   "baseline": "independent historical reference v1; exact-source history strictly before evaluated window",
-  "legacy_engine": "5.0.0 source-separated retrospective analysis; archived 4.2.0 results retained",
+  "legacy_engine": "5.1.0 source/evidence-separated retrospective analysis; archived 4.2.0 and 5.0.0 results retained",
   "ohif": {
     "repository": "https://github.com/OHIF/Viewers",
     "revision": "d493d1cb7676d7259761f9669b4f38d3fefe38bd",

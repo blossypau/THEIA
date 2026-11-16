@@ -111,7 +111,7 @@ def test_dataset_provenance_and_path_safety(session):
     a,frame=register_table(session,b'variable,value\nsleep,7\nfatigue,4\n','../../escape.csv','https://example.org/study')
     b,_=register_table(session,b'variable,value\nsleep,7\nfatigue,4\n','again.csv')
     assert a.id == b.id and a.file_name == 'escape.csv'
-    assert a.source_label == 'PUBLIC_RESEARCH_DATA'
+    assert a.source_label == 'IMPORTED_EXTERNAL_DATA'  # A declared HTTPS URL is not proof of public/NASA origin.
     assert len(frame) == 2
 
 

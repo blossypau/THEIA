@@ -23,6 +23,8 @@ def render_historical(session,astronaut_id,metric=None):
             st.write(f"Reference before {item['reference_before']} UTC; {item['samples']} samples on {item['days']}/{item['span_days']} days.")
             st.write({'mean':item['mean'],'median':item['median'],'IQR':item['iqr'],'SD':item['std'],'unit':item['unit']})
             st.dataframe(item['observations'],hide_index=True)
+            st.caption('STATISTICAL ANOMALY' if any(o['flagged'] for o in item['observations']) else 'OBSERVED CHANGE' if item['status']=='sufficient' else 'INSUFFICIENT DATA')
+            st.caption(item['provenance_class']+' / '+('NO VERIFIED SOURCE' if item['provenance_class']!='VERIFIED_DEVICE_CAPTURE' else 'Transport capture; HARDWARE NOT VALIDATED'))
             st.caption(item['method']);st.caption(result['limitations'])
             st.caption('Input reference IDs: '+', '.join(map(str,item['reference_ids'])))
     st.caption('Historical snapshot: '+result['fingerprint'])

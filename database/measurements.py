@@ -28,7 +28,12 @@ def query_measurements(session, astronaut_id, metric=None, start=None, end=None)
 def measurement_frame(session, astronaut_id, metric=None, start=None, end=None):
     rows = query_measurements(session, astronaut_id, metric, start, end).all()
     columns = ["id", "metric_name", "value", "unit", "timestamp", "source", "data_quality_status", "mission_context"]
-    return pd.DataFrame([{key: getattr(row, key) for key in columns} for row in rows], columns=columns)
+    from services.provenance import describe
+    from database.models import MeasurementOrigin,MeasurementProvenance
+    origins={r.measurement_id:r for r in session.query(MeasurementOrigin).join(HealthMeasurement).filter(HealthMeasurement.astronaut_id==astronaut_id)}
+    proofs={r.measurement_id:r for r in session.query(MeasurementProvenance).join(HealthMeasurement).filter(HealthMeasurement.astronaut_id==astronaut_id)}
+    metadata=['provenance_class','received_at','device_id','batch_id','acquisition_method','validation_status','is_simulation','declared_source','provenance_evidence']
+    return pd.DataFrame([{**{key: getattr(row, key) for key in columns},**describe(row,origins.get(row.id),proofs.get(row.id))} for row in rows],columns=columns+metadata)
 
 
 def insert_measurement(session, astronaut_id, payload, commit=True):
@@ -55,9 +60,12 @@ def insert_measurement(session, astronaut_id, payload, commit=True):
             session.flush()
             from database.models import MeasurementProvenance
             meta=session.info.get('acquisition_provenance',{})
-            session.add(MeasurementProvenance(measurement_id=record.id,connector=meta.get('connector','manual-or-legacy-api'),
+            proof=MeasurementProvenance(measurement_id=record.id,connector=meta.get('connector','manual-or-legacy-api'),
                 instrument=meta.get('instrument','Declared source; no device verified'),receipt=meta.get('receipt',identity),
-                capture_verified=bool(session.info.get('verified_sensor_capture')),details=json.dumps(meta)))
+                capture_verified=bool(session.info.get('verified_sensor_capture')),details=json.dumps(meta))
+            session.add(proof)
+            from services.provenance import create_origin
+            create_origin(session,record,proof)
     except IntegrityError:
         existing = query_measurements(session, astronaut_id, payload.metric_name).filter_by(timestamp=payload.timestamp).first()
         if existing is None or existing.value != payload.value or existing.unit != payload.unit or existing.source != payload.source:
@@ -90,6 +98,12 @@ def update_measurement(session, astronaut_id, record_id, changes, actor='local o
         metadata=json.loads(proof.details or '{}')
         metadata.update(original_capture_verified=True,current_value_manually_corrected=True)
         proof.details=json.dumps(metadata);proof.capture_verified=False
+        from database.models import MeasurementOrigin
+        origin=session.get(MeasurementOrigin,row.id)
+        if origin is not None:
+            origin.classification='UNKNOWN_UNVERIFIED'
+            evidence=json.loads(origin.evidence_json);evidence['current_value_manually_corrected']=True
+            origin.evidence_json=json.dumps(evidence)
     session.add(MeasurementRevision(astronaut_id=astronaut_id,measurement_id=row.id,before_json=before,
         after_json=json.dumps(payload.model_dump(),default=str,sort_keys=True),actor=actor[:100],reason=reason))
     session.commit()

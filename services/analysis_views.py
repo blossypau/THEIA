@@ -13,8 +13,11 @@ def metric_view(session, astronaut_id, metric, start=None, end=None):
 def history_figure(view):
     figure = go.Figure()
     frame = view["history"]
-    for source, rows in frame.groupby("source"):
-        figure.add_trace(go.Scatter(x=rows.timestamp, y=rows.value, mode="lines+markers", name=source))
+    for (source,provenance,quality), rows in frame.groupby(['source','provenance_class','data_quality_status']):
+        figure.add_trace(go.Scatter(x=rows.timestamp,y=rows.value,mode='lines+markers',
+            name=f'{source} / {provenance} / {quality}',customdata=rows[['id','unit','acquisition_method']].to_numpy(),
+            hovertemplate='%{x}<br>%{y} %{customdata[1]}<br>Record %{customdata[0]} / %{customdata[2]}<extra>%{fullData.name}</extra>',
+            marker_symbol='circle' if quality=='VALID' else 'diamond-open',connectgaps=False))
     for baseline in view["baselines"]:
         figure.add_hline(y=baseline["mean"], line_dash="dot", annotation_text=f"Mean ({baseline['cohort']})")
         flags = baseline["anomalies"]

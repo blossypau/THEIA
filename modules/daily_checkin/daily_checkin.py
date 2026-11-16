@@ -27,15 +27,16 @@ def render_daily_checkin() -> None:
             workload=st.slider('Perceived workload (0-100)',0,100,40)
             stress=st.slider('Voluntary perceived stress (0-100)',0,100,30)
             social_consent=st.checkbox('Voluntarily log social interaction minutes')
-            social=st.number_input('Voluntary social minutes',min_value=0.,value=0.) if social_consent else None
+            social_minutes=st.number_input('Voluntary social minutes',min_value=0.,value=None,key='checkin_social_minutes',
+                help='Optional. Stored only with explicit social-logging consent; zero and missing are distinct.')
+            social=social_minutes if social_consent else None
             sleep_start=st.number_input('Reported rest start hour (UTC, 0-23.99)',min_value=0.,max_value=23.99,value=22.)
             sleep_end=st.number_input('Reported rest end hour (UTC, 0-23.99)',min_value=0.,max_value=23.99,value=6.)
             st.caption('Self-reports are not diagnostic scales. Social logging is optional. No camera or voice inference is used.')
             notes = st.text_area("General observations")
             symptoms = st.text_area("Optional symptoms")
 
-            progress = sum(value > 0 for value in [sleep_duration, sleep_quality, mood, energy, fatigue, effort])
-            st.progress(progress / 6)
+            st.caption('Review every value before submitting. Zero scores are valid and do not imply an incomplete questionnaire.')
             submitted = st.form_submit_button("Save check-in")
 
         if submitted:

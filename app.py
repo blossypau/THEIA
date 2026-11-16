@@ -91,7 +91,7 @@ def render_sidebar():
         st.caption("WORKSPACE / MISSION OPERATIONS")
         selected = st.radio("Navigation", list(PAGES), label_visibility="collapsed", key="navigation")
         st.divider()
-        st.caption("THEIA 5.0 · LOCAL RESEARCH BUILD")
+        st.caption("THEIA 5.1 · LOCAL RESEARCH BUILD")
         st.caption("Experimental analytics. No remote synchronization inferred.")
         return PAGES[selected]
 
@@ -126,6 +126,8 @@ def render_application():
     token = active_astronaut_id.set(st.session_state['active_astronaut'])
     try:
         render_top_bar()
+        from modules.ui.provenance import render_provenance
+        with SessionLocal() as provenance_session:render_provenance(provenance_session,st.session_state['active_astronaut'])
         from modules.ui.acquisition import acquisition_tick
         acquisition_tick()
         if st.session_state.get('scenario_mode'):

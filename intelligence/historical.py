@@ -19,7 +19,7 @@ def historical_analysis(session, astronaut_id, start=None, end=None, persist=Tru
     if cached:return json.loads(cached.result_summary)
     result: dict[str,Any]=dict(fingerprint=fingerprint,astronaut_id=astronaut_id,signals=[],parameters={'minimum_observed_days':5,'minimum_samples':5,'descriptive_z_threshold':2.5},
         limitations='Reference excludes evaluated observations. Deviations are not diagnoses. Sources are separate; calibration and activity may differ.')
-    for (metric,source),group in frame.groupby(['metric_name','source']):
+    for (metric,source,provenance),group in frame.groupby(['metric_name','source','provenance_class']):
         cutoff=pd.Timestamp(start) if start is not None else group.timestamp.max()
         if cutoff.tzinfo is not None:cutoff=cutoff.tz_convert('UTC').tz_localize(None)
         reference=group[group.timestamp<cutoff];evaluated=group[group.timestamp>=cutoff]
@@ -35,7 +35,7 @@ def historical_analysis(session, astronaut_id, start=None, end=None, persist=Tru
             z=delta/std if delta is not None and std is not None and std>0 else None
             flagged=bool(abs(z)>2.5) if z is not None else bool(enough and std==0 and delta!=0)
             observations.append(dict(id=int(row.id),timestamp=row.timestamp.isoformat(),value=float(row.value),delta=delta,z_score=z,flagged=flagged))
-        result['signals'].append(dict(metric=metric,source=source,unit=group.unit.iloc[0],reference_before=cutoff.isoformat(),
+        result['signals'].append(dict(metric=metric,source=source,provenance_class=provenance,unit=group.unit.iloc[0],reference_before=cutoff.isoformat(),
             reference_ids=[int(i) for i in reference.id],samples=len(reference),days=int(days),span_days=span,
             coverage=float(days/span) if span else 0,mean=mean,median=median,std=std,
             iqr=float(reference.value.quantile(.75)-reference.value.quantile(.25)) if len(reference) else None,

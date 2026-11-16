@@ -1,5 +1,13 @@
 # THEIA 5.0 implementation and verification
 
+## 5.1 release closure
+
+The original 5.0 implementation below is retained as development history. Current acceptance/evidence is in [FINAL_RELEASE_VALIDATION.md](FINAL_RELEASE_VALIDATION.md), current source semantics in [DATA_PROVENANCE.md](DATA_PROVENANCE.md), and the presentation sequence in [NASA_DEMO_GUIDE.md](NASA_DEMO_GUIDE.md). Do not use the historical 100-test count or 5.0 captures as the final 5.1 evidence.
+
+5.1 adds a safe additive origin envelope with real receipt time for new records and UNKNOWN_UNVERIFIED for legacy records; no historical reception time is invented. Source/evidence classes separate analytical groups, CSV/API reject declared synthetic records, normal HRV no longer generates synthetic examples, recording metadata participates in NN analysis identity, and manually corrected captures lose current verification while retaining original evidence. HTTPS transient retries are bounded and redact request secrets. Nutrition distinguishes explicit zero from unknown, social consent no longer hides its entry field inside a form, and guidance checklists are session/profile-specific. The PDF includes provenance and only the latest nine context rows, with full context IDs retained in its stored summary.
+
+Clean-install validation exposed Windows Application Control blocking SQLAlchemy's native extension. Its documented pure-Python source build at the same pinned version works without changing security policies; `scripts/install_windows.py` makes that option reproducible. The external hardware and clinical limitations remain.
+
 ## Scope and scientific boundary
 
 Implemented on `feature/theia-5-space-health-intelligence`, based on `feature/scientific-health-analysis`. SQLite, existing analytical modules, futuristic interface, 826 anatomical identifiers and local OHIF remain. No merge into main. This is an experimental prototype, not clinical validation or autonomous mission decision support.

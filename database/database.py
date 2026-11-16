@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 from contextvars import ContextVar
 from datetime import datetime, timezone
+from threading import RLock
 from sqlalchemy import create_engine, inspect, text, event
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -28,7 +29,14 @@ def SessionLocal(*args, **kwargs):
     return factory(*args, **kwargs)
 
 
+_migration_lock=RLock()
+
+
 def init_db() -> None:
+    with _migration_lock:_initialize_schema()
+
+
+def _initialize_schema() -> None:
     from database.models import (
         AnomalyRecord,
         AstronautProfile,
@@ -48,6 +56,11 @@ def init_db() -> None:
     )
 
     inspector = inspect(engine)
+    if ('health_measurements' in inspector.get_table_names() and 'measurement_origins' not in inspector.get_table_names()
+        and 'identity_key' in {c['name'] for c in inspector.get_columns('health_measurements')}):
+        backup_dir=DB_PATH.parent/'data'/'backups';backup_dir.mkdir(parents=True,exist_ok=True)
+        stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')
+        with sqlite3.connect(DB_PATH) as source,sqlite3.connect(backup_dir/f'theia-before-v51-{stamp}.sqlite3') as backup:source.backup(backup)
     if "health_measurements" in inspector.get_table_names() and "identity_key" not in {c["name"] for c in inspector.get_columns("health_measurements")}:
         backup_dir = DB_PATH.parent / "data" / "backups"
         backup_dir.mkdir(parents=True, exist_ok=True)
@@ -61,6 +74,7 @@ def init_db() -> None:
     # Additive, versioned migration: existing measurements and report rows are retained.
     with engine.begin() as connection:
         connection.execute(text("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES ('5.0-additive-context-provenance', CURRENT_TIMESTAMP)"))
+        connection.execute(text("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES ('5.1-origin-envelope', CURRENT_TIMESTAMP)"))
 
 
 def get_session():

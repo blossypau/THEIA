@@ -165,6 +165,6 @@ def test_additive_migration_preserves_legacy_rows_and_is_idempotent(tmp_path,mon
     database.init_db();database.init_db()
     with engine.connect() as c:
         assert c.execute(text('SELECT value FROM health_measurements')).scalar()==73
-        assert c.execute(text('SELECT count(*) FROM schema_migrations')).scalar()==1
+        assert set(c.execute(text('SELECT version FROM schema_migrations')).scalars())=={'5.0-additive-context-provenance','5.1-origin-envelope'}
     assert list((tmp_path/'data/backups').glob('*.sqlite3'))
     engine.dispose()

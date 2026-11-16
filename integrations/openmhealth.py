@@ -53,7 +53,10 @@ def export_measurements(frame):
             body={field:{'value':float(row.value),'unit':unit},'effective_time_frame':{'date_time':payload.timestamp.isoformat()+'Z'}}
             validate_body(row.metric_name,body)
             points.append(dict(schema_id=dict(namespace='omh',name=name,version=version),body=body,
-                               theia_provenance=dict(measurement_id=int(row.id),source=row.source,quality=row.data_quality_status)))
+                               theia_provenance=dict(measurement_id=int(row.id),source=row.source,quality=row.data_quality_status,
+                                   provenance_class=getattr(row,'provenance_class','UNKNOWN_UNVERIFIED'),
+                                   received_at=str(getattr(row,'received_at',None)),is_simulation=row.source=='SIMULATED_DATA',
+                                   batch_id=getattr(row,'batch_id',None))))
         except ValueError:
             skipped.append(dict(id=int(row.id),reason='Failed THEIA validation or quality review'))
     return dict(format='THEIA bundle of Open mHealth validated bodies; not an OMH header or FHIR resource',

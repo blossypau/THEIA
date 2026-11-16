@@ -20,7 +20,7 @@ def parse_power(data):
             if value==fill:continue
             if not isinstance(value,(float,int)) or not __import__('math').isfinite(value):raise ValueError('Invalid POWER value')
             rows.append({'timestamp':pd.to_datetime(day,format='%Y%m%d').isoformat(),'metric':metric,'value':value,'unit':unit,
-                'source':'PUBLIC_RESEARCH_DATA','context':'Terrestrial gridded model near Kennedy Space Center, not cabin or personal sensor'})
+                'source':'PUBLIC_RESEARCH_DATA','provenance_class':'NASA_PUBLIC_RESEARCH_DATA','context':'Terrestrial gridded model near Kennedy Space Center, not cabin or personal sensor'})
     if not rows:raise ValueError('No valid POWER observations')
     return pd.DataFrame(rows)
 
@@ -41,4 +41,5 @@ def fetch_power(session):
     frame=parse_power(response.json())
     from services.datasets import register_table
     record,_=register_table(session,frame.to_csv(index=False).encode(),'NASA-POWER-Earth-reference.csv',response.url,'NASA-POWER-KSC-20240101-07')
+    record.source_label='NASA_PUBLIC_RESEARCH_DATA';session.commit()
     return record,frame

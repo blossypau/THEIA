@@ -93,7 +93,8 @@ def render_scientific_health():
 def _render_hrv(session,astronaut_id):
     from integrations.cardiovascular import synthetic_nn,read_nn_recording,analyze_nn,save_nn_analysis
     st.info('Daily heart-rate measurements cannot yield HRV. This tool requires contiguous, reviewed normal-to-normal intervals in milliseconds.')
-    demo=st.toggle('Use synthetic NN demonstration',value=True,key='science_nn_demo')
+    demo=st.toggle('Use synthetic NN demonstration',value=True,key='science_nn_demo') if session.info.get('scenario') else False
+    if not session.info.get('scenario'):st.caption('Synthetic NN generation is available only in the isolated synthetic scenario workspace.')
     data=None
     options={}
     if demo:

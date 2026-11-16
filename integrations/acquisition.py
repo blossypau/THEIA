@@ -27,6 +27,8 @@ def ingest(session, astronaut_id, batch):
         raise ValueError('Automatic simulation requires isolated scenario storage')
     if batch.source=='REAL_SENSOR_DATA' and not batch.capture_verified:raise ValueError('No active verified device capture')
     if not batch.records:raise ValueError('Connector returned no records')
+    if batch.source!='SIMULATED_DATA' and any(r.get('source')=='SIMULATED_DATA' for r in batch.records):
+        raise ValueError('Synthetic source declarations cannot be relabeled as external observations')
     identity=hashlib.sha256(f'{astronaut_id}:{batch.connector}:{batch.identity}'.encode()).hexdigest()
     existing=session.get(AcquisitionReceipt,identity)
     if existing:return json.loads(existing.details)
@@ -34,7 +36,8 @@ def ingest(session, astronaut_id, batch):
     previous=session.info.copy()
     try:
         session.info['verified_sensor_capture']=batch.capture_verified
-        session.info['acquisition_provenance']={'connector':batch.connector,'instrument':batch.instrument,'receipt':identity}
+        session.info['acquisition_provenance']={'connector':batch.connector,'instrument':batch.instrument,'receipt':identity,
+            'input_identity':batch.identity,'normalized_payload_sha256':hashlib.sha256(json.dumps([p.model_dump() for p in payloads],default=str,sort_keys=True).encode()).hexdigest()}
         ids=[insert_measurement(session,astronaut_id,p,commit=False).id for p in payloads]
         result={'status':'STORED','receipt':identity,'measurement_ids':ids,'source':batch.source,'connector':batch.connector,'capture_verified':batch.capture_verified}
         session.add(AcquisitionReceipt(id=identity,astronaut_id=astronaut_id,connector=batch.connector,status='STORED',details=json.dumps(result)))
@@ -105,7 +108,7 @@ class FolderConnector:
             if not 1<=len(frame)<=100000:raise ValueError('CSV requires 1-100000 rows')
             required={'metric_name','value','unit','timestamp'}
             if not required.issubset(frame.columns):raise ValueError('Automatic CSV requires metric_name,value,unit,timestamp')
-            columns=list(required|({'data_quality_status','mission_context','notes'}&set(frame.columns)))
+            columns=list(required|({'source','data_quality_status','mission_context','notes'}&set(frame.columns)))
             batches.append(Batch('authorized-folder',str(self.directory),frame[columns].to_dict('records'),'IMPORTED_DATA',digest))
         return batches
     def acknowledge(self,batch):self.done.add(batch.identity)
@@ -115,9 +118,19 @@ class APIConnector:
     def __init__(self,url,token_env=None):
         from urllib.parse import urlsplit
         parsed=urlsplit(url)
-        if parsed.scheme!='https' or parsed.username or parsed.password or parsed.fragment:raise ValueError('Authorized API requires HTTPS without embedded credentials')
+        if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:raise ValueError('Authorized API requires HTTPS without embedded credentials')
         self.url=url;self.token_env=token_env
     def poll(self):
+        import requests,time
+        for attempt in range(2):
+            try:return self._poll_once()
+            except requests.RequestException as exc:
+                status=exc.response.status_code if exc.response is not None else None
+                transient=isinstance(exc,(requests.Timeout,requests.ConnectionError)) or status==429 or (status is not None and status>=500)
+                if attempt==0 and transient:time.sleep(.1);continue
+                raise ValueError(f'Authorized API unavailable ({type(exc).__name__}); URL query and credentials omitted') from None
+        raise RuntimeError('Unreachable retry state')
+    def _poll_once(self):
         import os,requests
         headers={}
         if self.token_env:
@@ -132,5 +145,5 @@ class APIConnector:
                 data+=chunk
                 if len(data)>1024*1024:raise ValueError('API response exceeds 1 MB')
         rows=json.loads(data)
-        if not isinstance(rows,list) or not 1<=len(rows)<=1000:raise ValueError('API requires 1-1000 measurement objects')
-        return [Batch('authorized-api',__import__('urllib.parse',fromlist=['urlsplit']).urlsplit(self.url)._replace(query='').geturl(),rows,'IMPORTED_DATA',hashlib.sha256(data).hexdigest())]
+        if not isinstance(rows,list) or not 1<=len(rows)<=1000 or not all(isinstance(r,dict) for r in rows):raise ValueError('API requires 1-1000 measurement objects')
+        return [Batch('authorized-api',__import__('urllib.parse',fromlist=['urlsplit']).urlsplit(self.url)._replace(query='').geturl(),rows,'IMPORTED_DATA',hashlib.sha256(self.url.encode()+data).hexdigest())]
