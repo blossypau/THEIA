@@ -11,7 +11,7 @@ def apply_theia_theme():
 
 
 def render_page_header(title, subtitle):
-    st.markdown(f"<div class='page-heading'><div><div class='eyebrow'>THEIA / SPACE HEALTH COMMAND</div><h1>{escape(title)}</h1><p>{escape(subtitle)}</p></div><span class='outline-tag'>RESEARCH CONSOLE · 04</span></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='page-heading'><div><div class='eyebrow'>THEIA / SPACE HEALTH COMMAND</div><h1>{escape(title)}</h1><p>{escape(subtitle)}</p></div><span class='outline-tag'>RESEARCH CONSOLE · 5.1</span></div>", unsafe_allow_html=True)
 
 
 def section_heading(title, detail=''):

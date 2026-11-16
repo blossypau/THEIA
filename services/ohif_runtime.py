@@ -92,6 +92,13 @@ def remember_service(base_url, state_path=STATE_PATH):
 
 
 def resolve_ohif(state_path=STATE_PATH):
+    from config.web import public_demo,internal_origin
+    if public_demo():
+        try:
+            response=requests.get(internal_origin()+'/theia/health',timeout=1)
+            ready=response.status_code==200 and response.json().get('service')=='theia-ohif' and response.json().get('status')=='ready'
+            return ViewerStatus('',ready,'Same-origin public demo viewer' if ready else 'Public viewer build unavailable')
+        except (requests.RequestException,ValueError):return ViewerStatus('',False,'Public viewer unavailable')
     explicit = os.environ.get('THEIA_OHIF_URL')
     if explicit:
         return probe_ohif(explicit)

@@ -1,0 +1,22 @@
+name: THEIA local scientific tests
+on:
+  push:
+    branches: [feature/theia-5-space-health-intelligence]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-scientific-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: requirements-lock-windows-py314.txt
+      - run: python -m pip install pip==26.3
+      - run: python -m pip install -r requirements-lock-windows-py314.txt
+      - run: python -m pip check
+      - run: python -m pytest -q --tb=short

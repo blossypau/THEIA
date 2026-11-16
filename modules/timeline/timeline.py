@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 import pandas as pd
 import streamlit as st
 
@@ -13,43 +14,29 @@ from modules.ui.theme import apply_theia_theme, render_page_header
 def render_timeline() -> None:
     apply_theia_theme()
     render_page_header("Mission timeline", "System events • workload markers • crew activity chronology")
+    if st.session_state.pop('timeline_saved',False):st.success('Mission event added.')
 
     session = SessionLocal()
     try:
-        events = get_mission_events(session)
+        from services.mission_timeline import timeline_events
+        events=timeline_events(session,ensure_astronaut(session).id)
         if events:
-            event_type_filter = st.multiselect("Filter by event type", sorted({event.event_type for event in events}), default=[])
-            filtered = [event for event in events if not event_type_filter or event.event_type in event_type_filter]
-            if not filtered:
-                st.info("No events match the current filter selection.")
-                return
+            categories=st.multiselect('Recorded event categories',sorted({r['kind'] for r in events}),key='timeline_categories')
+            filtered=[r for r in events if not categories or r['kind'] in categories]
+            st.caption(f'{len(filtered)} recorded items. Latest 300 shown; no unrecorded exposure or sleep period is inferred.')
+            if filtered:
+                choices=filtered[-300:]
+                selected=st.selectbox('Inspect recorded event',range(len(choices)),format_func=lambda i:f"{choices[i]['timestamp']} / {choices[i]['source']} / {choices[i]['title']}",key='timeline_event')
+                item=choices[selected]
+                st.write(item['title']);st.json(item['details'])
+                st.dataframe([{k:v for k,v in r.items() if k!='details'} for r in choices],hide_index=True)
+            else:st.info('No events match the current filters.')
+        else:st.info('No mission events or observations recorded yet.')
 
-            st.markdown("<div class='section-tag'>Chronology</div>", unsafe_allow_html=True)
-            for event in filtered:
-                st.markdown(
-                    f"""
-                    <div class='timeline-item'>
-                        <div class='timeline-mark'></div>
-                        <div class='timeline-content'>
-                            <div class='timeline-title'>{event.event_type}</div>
-                            <div class='timeline-subtitle'>Mission day {event.mission_day} • {event.timestamp.strftime('%Y-%m-%d %H:%M')}</div>
-                            <div style='color: var(--text); margin-top: 0.18rem;'>{event.description}</div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            st.markdown("<div style='height: 0.8rem;'></div>", unsafe_allow_html=True)
-            rows = [{
-                "Mission Day": event.mission_day,
-                "Type": event.event_type,
-                "Description": event.description,
-                "Timestamp": event.timestamp.strftime("%Y-%m-%d %H:%M")
-            } for event in filtered]
-            st.dataframe(pd.DataFrame(rows), width="stretch")
-        else:
-            st.info("No mission events recorded yet.")
-
+        from config.web import public_demo
+        if public_demo():
+            st.caption('PUBLIC SYNTHETIC DEMO: event entry is disabled; only recorded fictional events are shown.')
+            return
         st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
         with st.form("add_event"):
             event_type = st.text_input("Event type")
@@ -66,6 +53,7 @@ def render_timeline() -> None:
             )
             session.add(event)
             session.commit()
-            st.success("Mission event added.")
+            st.session_state['timeline_saved']=True
+            st.rerun()
     finally:
         session.close()

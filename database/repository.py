@@ -434,10 +434,30 @@ def save_scientific_report(session: Session, report_type: str, title: str, summa
         references=references,
     )
     session.add(record)
+    session.flush()
+    from database.models import ReportScope
+    import json
+    try:profile_id=json.loads(summary).get('astronaut_id')
+    except (ValueError,TypeError,AttributeError):profile_id=None
+    profile_id=profile_id or ensure_astronaut(session).id
+    session.add(ReportScope(report_id=record.id,astronaut_id=profile_id))
     session.commit()
     session.refresh(record)
     return record
 
 
 def get_report_documents(session: Session):
-    return session.query(ScientificReportDocument).order_by(ScientificReportDocument.generated_at.desc()).all()
+    from database.models import ReportScope
+    import json
+    profile_id=ensure_astronaut(session).id
+    rows=session.query(ScientificReportDocument).order_by(ScientificReportDocument.generated_at.desc()).all()
+    result=[]
+    for row in rows:
+        scope=session.get(ReportScope,row.id)
+        if scope is not None:
+            if scope.astronaut_id==profile_id:result.append(row)
+        else:
+            try:
+                if json.loads(row.summary or '{}').get('astronaut_id')==profile_id:result.append(row)
+            except (ValueError,AttributeError):pass
+    return result

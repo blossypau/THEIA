@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 from services.ohif_runtime import (STATE_PATH, DEFAULT_URL, discovered_url, local_url, probe_ohif, remember_service)
 from urllib.parse import urlsplit
 
+RESERVED_PORTS={3002,3004,8507,8765}
+
 def is_port_open(port):
     with socket.socket() as sock:
         sock.settimeout(0.5)
@@ -27,6 +29,7 @@ def ensure_ohif(directory=None, state_path=STATE_PATH, ports=None, ready_timeout
     explicit = os.environ.get('THEIA_OHIF_URL')
     candidates = [local_url(explicit)] if explicit else [discovered_url(state_path), DEFAULT_URL]
     for url in dict.fromkeys(filter(None, candidates)):
+        if (urlsplit(url).port or 80) in RESERVED_PORTS:continue
         status = probe_ohif(url)
         if status.ready:
             remember_service(url, state_path)
@@ -34,6 +37,9 @@ def ensure_ohif(directory=None, state_path=STATE_PATH, ports=None, ready_timeout
             return status, None
     candidate_ports = [urlsplit(local_url(explicit)).port or 80] if explicit else list(ports or [3001, *range(3003, 3013)])
     for port in candidate_ports:
+        if port in RESERVED_PORTS:
+            if explicit:raise ValueError('OHIF port is reserved for another THEIA service')
+            continue
         url = f'http://127.0.0.1:{port}'
         if is_port_open(port):
             status = probe_ohif(url)
@@ -97,9 +103,11 @@ def main(argv=None):
                 name,port,_,path=service
                 try:
                     response=requests.get(f'http://127.0.0.1:{port}{path}',timeout=0.5)
-                    if response.ok:
+                    marker={'bridge':'theia-integration-api','visuals':'theia-visuals'}.get(name)
+                    valid=response.ok and (response.json().get('service')==marker if marker else response.text.strip()=='ok')
+                    if valid:
                         print(f'HTTP ready: {name} http://localhost:{port}{path}');pending.remove(service)
-                except requests.RequestException:
+                except (requests.RequestException,ValueError):
                     pass
             time.sleep(0.5)
         for name,port,_,_ in pending: print(f'{name}: no HTTP readiness response on port {port}')

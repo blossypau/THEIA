@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/OHIF/Viewers",
+  "revision": "d493d1cb7676d7259761f9669b4f38d3fefe38bd",
+  "url": "https://github.com/blossypau/THEIA/releases/download/theia-web-runtime-v1/ohif-runtime.zip",
+  "sha256": "d3bc4528c03e49f5cb1281d3e72ef540c358e81496ca57f0a2327c5de09978eb",
+  "bytes": 43467476,
+  "license": "MIT; upstream LICENSE and source reference included",
+  "purpose": "Pinned browser runtime, no DICOM studies; served with THEIA local-file-only configuration"
+}

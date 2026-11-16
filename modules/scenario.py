@@ -9,6 +9,8 @@ from modules.ui.theme import render_page_header, info_card, navigation_button
 
 
 def _reset():
+    st.session_state['acquisition_running']=False
+    st.session_state.pop('acquisition_connector',None)
     from services.scenario import scenario_factory
     with scenario_factory(st.session_state['scenario_workspace_id'])() as session:reset_scenario(session)
     for key in list(st.session_state):
@@ -26,6 +28,8 @@ def render_scenario():
     if st.session_state.get('scenario_notice'):st.success(st.session_state.pop('scenario_notice'))
     with SessionLocal() as session:
         astronaut=ensure_astronaut(session)
+        from modules.ui.acquisition import render_acquisition
+        render_acquisition(session,astronaut.id)
         result=analyze(session,astronaut.id)
         if st.session_state.get('scenario_pdf_snapshot') != result['fingerprint']:
             st.session_state.pop('scenario_pdf_bytes',None)

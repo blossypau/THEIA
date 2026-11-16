@@ -3,3 +3,4 @@ assets/schemas/openmhealth/*.json text eol=lf whitespace=-blank-at-eol
 assets/schemas/openmhealth/LICENSE text eol=lf
 assets/licenses/neurokit2/LICENSE text eol=lf whitespace=-blank-at-eof
 assets/testdata/OHIF-* text eol=lf
+assets/research/*.json text eol=lf

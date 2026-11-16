@@ -104,7 +104,7 @@ function init() {
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     document.getElementById('canvas-container').appendChild(renderer.domElement);
 
     const ambientLight = new THREE.AmbientLight(0x82dbea, 1.1);
@@ -225,7 +225,11 @@ function loadModel() {
                 }
             });
             if (pendingTheiaCommand) { applyTheiaCommand(pendingTheiaCommand); pendingTheiaCommand=null; }
-            window.__THEIA_MODEL_DEBUG__ = { meshNames, count: meshNames.length };
+            window.__THEIA_MODEL_DEBUG__ = { meshNames, count: meshNames.length,
+                snapshot: () => ({camera:camera.position.toArray(),target:controls.target.toArray(),
+                    visible:clickableObjects.filter(o=>o.visible).length,
+                    opacity:clickableObjects.map(o=>o.material.opacity),
+                    selected:selectedObject?.userData.theiaIdentifier || null}) };
             document.getElementById('model-status').textContent = `${meshNames.length} structures loaded`;
             console.log('Model loaded successfully', meshNames.slice(0, 50));
         },
@@ -610,8 +614,12 @@ function resetAllObjects() {
     closeInfoPanel();
 }
 
-function animate() {
+let lastRenderTime = 0;
+function animate(now = 0) {
     requestAnimationFrame(animate);
+    // Preserve all 826 meshes and controls; avoid rendering hidden tabs or >30 frames/s.
+    if (document.hidden || now - lastRenderTime < 1000 / 30) return;
+    lastRenderTime = now;
     controls.update();
     TWEEN.update();
     renderer.render(scene, camera);

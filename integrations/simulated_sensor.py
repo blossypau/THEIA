@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 def generate_simulated_measurement(metric_name: str):
@@ -30,7 +30,7 @@ def generate_simulated_measurement(metric_name: str):
             "energy": "score",
             "fatigue": "score",
         }.get(metric_name, "score"),
-        "timestamp": (datetime.utcnow() - timedelta(minutes=random.randint(5, 180))).isoformat(),
+        "timestamp": (datetime.now(timezone.utc) - timedelta(minutes=random.randint(5, 180))).isoformat(),
         "source": "SIMULATED_DATA",
         "data_quality_status": "VALID",
     }

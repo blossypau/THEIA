@@ -1,5 +1,6 @@
 """Native scientific tools, connected to the active profile and isolated scenario routing."""
 import json
+from datetime import timedelta
 import pandas as pd
 import streamlit as st
 from database.database import SessionLocal
@@ -12,9 +13,13 @@ from modules.ui.theme import render_page_header
 def render_scientific_health():
     render_page_header('Scientific health analysis','Cardiovascular observations / sleep duration / mission periods / traceable methods')
     st.caption('Scalar observations support longitudinal descriptions. ECG, EEG and polysomnography are not present in the mission measurement schema.')
-    tool=st.selectbox('Scientific tool',['Longitudinal periods','Beat-to-beat HRV','Open mHealth export'],key='science_tool')
+    tool=st.selectbox('Scientific tool',['Longitudinal periods','Beat-to-beat HRV','Open mHealth export','Mission context & hazards'],key='science_tool')
     with SessionLocal() as session:
         astronaut=ensure_astronaut(session)
+        if tool=='Mission context & hazards':
+            from modules.ui.space_context import render_context
+            render_context(session,astronaut.id)
+            return
         if tool=='Beat-to-beat HRV':
             _render_hrv(session,astronaut.id)
             return
@@ -54,7 +59,19 @@ def render_scientific_health():
         slope=item['theil_sen_per_day']
         cols[2].metric('Theil–Sen slope / day',f'{slope:+.4f}' if slope is not None else 'Insufficient days')
         chart=pd.DataFrame(item['daily']);chart['day']=pd.to_datetime(chart.day)
-        st.line_chart(chart,x='day',y='value',x_label='UTC day',y_label=item['unit'],alt=f"Daily reported {item['metric']}, source {item['source']}")
+        import plotly.express as px
+        figure=px.line(chart,x='day',y='value',markers=True,template='plotly_dark',labels={'day':'UTC day','value':item['unit']})
+        figure.update_layout(height=360,margin=dict(l=15,r=15,t=45,b=40),paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)')
+        for period,color,label in [(a,'#45E0F5','A'),(b,'#9C78FF','B')]:
+            if not isinstance(period,tuple) or len(period)!=2:continue
+            figure.add_vrect(x0=str(period[0]),x1=str(period[1]+timedelta(days=1)),fillcolor=color,opacity=.08,line_width=0,annotation_text='Period '+label)
+        selected=st.plotly_chart(figure,key='science_longitudinal_'+result['fingerprint'][:12]+str(index),width='stretch',on_select='rerun',selection_mode=('points','box','lasso'))
+        if selected.selection.points:
+            days={pd.Timestamp(point['x']).date() for point in selected.selection.points}
+            selected_rows=frame[(frame.metric_name==item['metric'])&(frame.source==item['source'])&frame.timestamp.dt.date.isin(days)]
+            st.caption('Selected daily means: original recorded observations below. Selection does not alter analysis or storage.')
+            st.dataframe(selected_rows,hide_index=True)
+            st.download_button('Download selected observations',selected_rows.to_csv(index=False),'selected-observations.csv','text/csv')
         comparison=item['comparison']
         st.subheader('Period comparison')
         st.dataframe([{'period':label,**comparison[k]} for label,k in [('A','a'),('B','b')]],hide_index=True)
@@ -74,10 +91,12 @@ def render_scientific_health():
 
 
 def _render_hrv(session,astronaut_id):
-    from integrations.cardiovascular import synthetic_nn,read_nn_csv,analyze_nn,save_nn_analysis
+    from integrations.cardiovascular import synthetic_nn,read_nn_recording,analyze_nn,save_nn_analysis
     st.info('Daily heart-rate measurements cannot yield HRV. This tool requires contiguous, reviewed normal-to-normal intervals in milliseconds.')
-    demo=st.toggle('Use synthetic NN demonstration',value=True,key='science_nn_demo')
+    demo=st.toggle('Use synthetic NN demonstration',value=True,key='science_nn_demo') if session.info.get('scenario') else False
+    if not session.info.get('scenario'):st.caption('Synthetic NN generation is available only in the isolated synthetic scenario workspace.')
     data=None
+    options={}
     if demo:
         data=synthetic_nn();st.warning('SIMULATED_DATA · Deterministic artificial NN sequence, not astronaut physiology.')
     elif session.info.get('scenario'):
@@ -85,13 +104,13 @@ def _render_hrv(session,astronaut_id):
     else:
         uploaded=st.file_uploader('Reviewed NN intervals CSV (nn_ms)',type=['csv'],key='science_nn_upload')
         if uploaded:
-            try:data=read_nn_csv(uploaded.getvalue())
+            try:data,options=read_nn_recording(uploaded.getvalue())
             except (ValueError,UnicodeError) as exc:st.error(str(exc));return
     confirmed=st.checkbox('I confirm contiguous normal-to-normal intervals with no missing beats or untreated artifacts',key='science_nn_confirm')
     if st.button('Analyze NN intervals',key='science_nn_run',disabled=data is None or not confirmed):
         try:
             with st.spinner('Computing the verified NeuroKit-derived temporal subset…'):
-                result=analyze_nn(data,'SIMULATED_DATA' if demo else 'IMPORTED_DATA',confirmed)
+                result=analyze_nn(data,'SIMULATED_DATA' if demo else 'IMPORTED_DATA',confirmed,**options)
                 row=save_nn_analysis(session,astronaut_id,result)
             st.session_state['science_nn_result']=(astronaut_id,bool(session.info.get('scenario')),row.id,result)
         except ValueError as exc:st.error(str(exc))

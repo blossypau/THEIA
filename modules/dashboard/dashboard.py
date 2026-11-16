@@ -29,6 +29,8 @@ def _signal(session,astronaut_id,metric,label):
         else:
             latest=frame.iloc[-1]
             st.metric(label,f'{latest.value:g} {latest.unit}',chart_data=frame.value.tail(20).tolist(),chart_type='line')
+            st.caption(latest.provenance_class)
+            st.caption('Transport capture only / HARDWARE NOT VALIDATED' if latest.provenance_class=='VERIFIED_DEVICE_CAPTURE' else 'NO VERIFIED SOURCE / declared observation')
             st.caption(f"{latest.source} · {latest.timestamp:%d %b %H:%M} UTC")
 
 
@@ -38,6 +40,8 @@ def render_dashboard():
     states=_services()
     with SessionLocal() as session:
         summary=get_dashboard_summary(session);astronaut=summary['astronaut'];result=summary['analysis']
+        from intelligence.historical import historical_analysis
+        independent=historical_analysis(session,astronaut.id)
         with st.container(key='mission_stage'):
             signals,scene,readouts=st.columns([1,2.5,1],gap='medium')
             with signals:
@@ -54,9 +58,11 @@ def render_dashboard():
             with readouts:
                 section_heading('Data readiness','VERIFIABLE')
                 info_card('OBSERVATIONS',result['quality']['total'],'Measurements stored for the active astronaut')
-                info_card('STATISTICAL FLAGS',sum(len(v['anomalies']) for v in result['metrics'].values()),'Patterns for review · not diagnoses','violet')
+                info_card('STATISTICAL FLAGS',sum(o['flagged'] for v in independent['signals'] for o in v['observations']),'Prior-history deviations / not diagnoses','violet')
                 info_card('EXCLUDED RECORDS',result['quality']['excluded'],'Quality / range / unit validation','amber')
                 info_card('MISSION DAY',f'{astronaut.mission_day:03}',astronaut.mission_id,'green')
+        from modules.ui.space_context import hazard_panel
+        hazard_panel(session,astronaut.id)
         section_heading('Crew health workspace','REGISTERED PROFILES ONLY')
         profiles=session.query(AstronautProfile).order_by(AstronautProfile.id).all()
         columns=st.columns(min(4,max(1,len(profiles))))
@@ -101,7 +107,7 @@ def render_health_dashboard():
             section_heading('Signal history','HOVER · ZOOM · COMPARE')
             view=render_analysis(session,astronaut.id,metric,'health',start=cutoff)
         with baseline:
-            section_heading('Personal baseline','SHARED ENGINE')
+            section_heading('Period distribution','RETROSPECTIVE / NOT INDEPENDENT BASELINE')
             for item in view['baselines']:
                 info_card(item['cohort'].upper(),f"{item['mean']:.2f} {item['unit']}",f"Mean · {item['samples']} samples")
                 st.metric('Variability / standard deviation',f"{item['std']:.3f}")

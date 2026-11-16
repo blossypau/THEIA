@@ -10,16 +10,20 @@ from database.repository import get_nutrition_records
 
 
 def render_nutrition():
+    from config.web import public_demo
+    if public_demo():
+        st.info('PUBLIC SYNTHETIC DEMO: personal nutrition entry is disabled. No nutritional measurements are invented for this scenario.')
+        return
     st.subheader("Nutrition Tracking")
     session = SessionLocal()
     try:
         with st.form("nutrition_form"):
             meal_name = st.text_input("Meal or food item")
-            calories = st.number_input("Calories", min_value=0.0, step=10.0)
-            protein = st.number_input("Protein (g)", min_value=0.0, step=1.0)
-            carbs = st.number_input("Carbs (g)", min_value=0.0, step=1.0)
-            fats = st.number_input("Fats (g)", min_value=0.0, step=1.0)
-            hydration = st.number_input("Hydration (L)", min_value=0.0, step=0.1)
+            calories = st.number_input("Calories", min_value=0.0, step=10.0,value=None)
+            protein = st.number_input("Protein (g)", min_value=0.0, step=1.0,value=None)
+            carbs = st.number_input("Carbs (g)", min_value=0.0, step=1.0,value=None)
+            fats = st.number_input("Fats (g)", min_value=0.0, step=1.0,value=None)
+            hydration = st.number_input("Hydration (L)", min_value=0.0, step=0.1,value=None)
             estimated = st.checkbox("Values are estimated")
             submitted = st.form_submit_button("Save nutrition record")
 
@@ -27,16 +31,17 @@ def render_nutrition():
             record = NutritionRecord(
                 astronaut_id=ensure_astronaut(session).id,
                 meal_name=meal_name,
-                calories=float(calories) if calories else None,
-                protein_g=float(protein) if protein else None,
-                carbs_g=float(carbs) if carbs else None,
-                fats_g=float(fats) if fats else None,
-                hydration_liters=float(hydration) if hydration else None,
+                calories=calories,
+                protein_g=protein,
+                carbs_g=carbs,
+                fats_g=fats,
+                hydration_liters=hydration,
                 estimated=bool(estimated),
             )
             session.add(record)
             session.commit()
             st.success("Nutrition record saved.")
+        elif submitted:st.error('Enter a meal or food item. Missing nutritional values remain unknown, not zero.')
 
         rows = get_nutrition_records(session)
         if rows:

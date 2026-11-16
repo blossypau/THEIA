@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import io
 
 from config.settings import ROOT_DIR
 from database.database import SessionLocal, init_db
@@ -36,7 +37,11 @@ def test_csv_import_inserts_records():
     try:
         astronaut = seed_sample_data(session)
         csv_path = ROOT_DIR / "data" / "sample" / "sample_health_data.csv"
-        records = import_csv(session, str(csv_path), astronaut_id=astronaut.id)
+        # The supplied sample is explicitly synthetic and must not enter normal storage.
+        import pytest
+        with pytest.raises(ValueError,match='Synthetic CSV'):import_csv(session,str(csv_path),astronaut_id=astronaut.id)
+        content=b'metric_name,value,unit,timestamp\nheart_rate,73,bpm,2026-03-01T08:00:00\n'
+        records = import_csv(session, io.BytesIO(content), astronaut_id=astronaut.id)
         assert len(records) >= 1
         assert session.query(HealthMeasurement).filter_by(astronaut_id=astronaut.id).count() > 0
     finally:

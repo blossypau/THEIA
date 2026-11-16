@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: theia-public-demo
+    runtime: docker
+    plan: free
+    branch: feature/theia-5-space-health-intelligence
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: THEIA_DEMO_ROOT
+        value: /tmp/theia-public-demo
+      - key: STREAMLIT_SERVER_FILE_WATCHER_TYPE
+        value: none
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: FORWARDED_ALLOW_IPS
+        value: "*"

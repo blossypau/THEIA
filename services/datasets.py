@@ -16,13 +16,15 @@ def register_table(session, content, file_name, source_url="USER_IMPORT", study_
     digest = hashlib.sha256(content).hexdigest()
     directory = Path(session.info["scenario_dir"]) / "imports" if session.info.get("scenario") else ROOT_DIR / "data/imports"
     directory.mkdir(parents=True, exist_ok=True)
+    if directory.is_symlink():raise ValueError('Research imports directory cannot be a symlink')
     path = directory / f"{digest}.csv"
+    if path.is_symlink() or path.resolve().parent!=directory.resolve():raise ValueError('Research file must stay inside the authorized imports directory')
     existing = session.query(ImportedDataset).filter_by(file_path=str(path)).first()
     if existing:
         return existing, frame
     frame.to_csv(path, index=False)
     record = ImportedDataset(study_id=study_id, file_name=Path(file_name.replace('\\', '/')).name, file_path=str(path), row_count=len(frame),
-        columns=",".join(frame.columns), source_label="PUBLIC_RESEARCH_DATA" if source_url.startswith("https://") else "USER_IMPORT",
+        columns=",".join(frame.columns), source_label="IMPORTED_EXTERNAL_DATA",
         status="VALIDATED_TABLE", notes=f"Source: {source_url}; SHA256 original: {digest}. No astronaut assignment.")
     session.add(record); session.commit()
     return record, frame
@@ -55,4 +57,5 @@ def fetch_osdr_sample_table(session):
         raise ValueError('NASA metadata response exceeds 5 MB')
     frame, title = osdr_sample_table(response.json())
     record, frame = register_table(session, frame.to_csv(index=False).encode(), 'OSD-1-public-sample-metadata.csv', url, 'OSD-1')
+    record.source_label='NASA_PUBLIC_RESEARCH_DATA';session.commit()
     return record, frame, title

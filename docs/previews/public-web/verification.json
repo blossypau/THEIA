@@ -1,0 +1,14 @@
+{
+  "forced_synthetic_mode": true,
+  "automatic_acquisition": true,
+  "public_anatomy_826_selection_isolation": true,
+  "public_ohif_ct_rendered": true,
+  "personal_imports_disabled": true,
+  "independent_browser_storage": true,
+  "javascript_errors": [],
+  "visitor_localhost_requests": [],
+  "tested_origin": "https://proved-sent-congressional-chamber.trycloudflare.com",
+  "deployment_kind": "Temporary HTTPS tunnel to isolated synthetic-only server, not independent cloud hosting",
+  "unit_tests": "140 passed, 4 existing UTC warnings",
+  "container_build": "Not executed locally; no Docker engine or connected hosting account"
+}

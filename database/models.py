@@ -10,6 +10,89 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database.database import Base
 
 
+class SchemaMigration(Base):
+    __tablename__ = 'schema_migrations'
+    version: Mapped[str] = mapped_column(String(50), primary_key=True)
+    applied_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+
+
+class MeasurementOrigin(Base):
+    """5.1 additive envelope. Missing historical envelopes never imply verification."""
+    __tablename__ = 'measurement_origins'
+    measurement_id: Mapped[int] = mapped_column(ForeignKey('health_measurements.id'), primary_key=True)
+    received_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    declared_source: Mapped[str] = mapped_column(String(50))
+    classification: Mapped[str] = mapped_column(String(50))
+    device_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    batch_id: Mapped[str] = mapped_column(String(100))
+    acquisition_method: Mapped[str] = mapped_column(String(100))
+    validation_status: Mapped[str] = mapped_column(String(100))
+    is_simulation: Mapped[bool] = mapped_column(default=False)
+    evidence_json: Mapped[str] = mapped_column(Text, default='{}')
+
+
+class MeasurementRevision(Base):
+    __tablename__ = 'measurement_revisions'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    astronaut_id: Mapped[int] = mapped_column(ForeignKey('astronaut_profiles.id'), index=True)
+    measurement_id: Mapped[int] = mapped_column(ForeignKey('health_measurements.id'), index=True)
+    before_json: Mapped[str] = mapped_column(Text)
+    after_json: Mapped[str] = mapped_column(Text)
+    actor: Mapped[str] = mapped_column(String(100))
+    reason: Mapped[str] = mapped_column(Text)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+
+
+class MeasurementProvenance(Base):
+    __tablename__ = 'measurement_provenance'
+    measurement_id: Mapped[int] = mapped_column(ForeignKey('health_measurements.id'), primary_key=True)
+    connector: Mapped[str] = mapped_column(String(100))
+    instrument: Mapped[str] = mapped_column(String(200))
+    receipt: Mapped[str] = mapped_column(String(100))
+    capture_verified: Mapped[bool] = mapped_column(default=False)
+    details: Mapped[str] = mapped_column(Text, default='{}')
+
+
+class AcquisitionReceipt(Base):
+    __tablename__ = 'acquisition_receipts'
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    astronaut_id: Mapped[int] = mapped_column(ForeignKey('astronaut_profiles.id'), index=True)
+    connector: Mapped[str] = mapped_column(String(100))
+    status: Mapped[str] = mapped_column(String(30))
+    details: Mapped[str] = mapped_column(Text)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+
+
+class ReportScope(Base):
+    __tablename__ = 'report_scopes'
+    report_id: Mapped[int] = mapped_column(ForeignKey('scientific_report_documents.id'), primary_key=True)
+    astronaut_id: Mapped[int] = mapped_column(ForeignKey('astronaut_profiles.id'), index=True)
+
+
+class SpaceObservation(Base):
+    """Typed mission context, kept separate from scalar physiology and never inferred from it."""
+    __tablename__ = 'space_observations'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    identity_key: Mapped[str] = mapped_column(String(64), unique=True)
+    astronaut_id: Mapped[int] = mapped_column(ForeignKey('astronaut_profiles.id'), index=True)
+    kind: Mapped[str] = mapped_column(String(40), index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, index=True)
+    end: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    source: Mapped[str] = mapped_column(String(50))
+    quality: Mapped[str] = mapped_column(String(30))
+    instrument: Mapped[str] = mapped_column(String(200))
+    payload: Mapped[str] = mapped_column(Text)
+
+
+class TestOutbox(Base):
+    __test__ = False
+    __tablename__ = 'test_outbox'
+    id: Mapped[str] = mapped_column(ForeignKey('acquisition_receipts.id'), primary_key=True)
+    astronaut_id: Mapped[int] = mapped_column(ForeignKey('astronaut_profiles.id'), index=True)
+    payload: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), default='SYNC PENDING')
+
+
 class AstronautProfile(Base):
     __tablename__ = "astronaut_profiles"
 

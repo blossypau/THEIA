@@ -2,6 +2,52 @@
 
 THEIA is a modular astronaut health monitoring and self-assessment platform designed for long-duration missions. It combines local health tracking, trend analysis, rule-based anomaly detection, and a modern dashboard for crew health awareness.
 
+## THEIA 5.1: final experimental demonstration
+
+**Browser/public demo:** the same-origin web entry point now serves the actual anatomy model without a viewer on each visitor's computer. It is forced synthetic and cannot read normal storage. [Public deployment and free-hosting instructions](docs/PUBLIC_DEMO.md). A temporary tunnel is not a permanent cloud deployment.
+
+**Windows quick start / compartir con amigos:** download the [5.1 branch ZIP](https://github.com/blossypau/THEIA/archive/refs/heads/feature/theia-5-space-health-intelligence.zip), extract it and open `INICIAR_THEIA.cmd` with Python 3.14 installed. [Instrucciones en español](docs/INICIO_RAPIDO.md). The default `main` download is not the current PR branch; GitHub itself does not host the running app.
+
+Release validation, evidence and unresolved external limits: [final validation](docs/FINAL_RELEASE_VALIDATION.md). Start the **3–5 minute synthetic demonstration** with [NASA demo guide](docs/NASA_DEMO_GUIDE.md). This is a local experimental prototype, not a clinically validated or flight-certified system.
+
+The six centralized provenance classes are visible on every workspace and exported with measurement/receipt timestamps, batch, acquisition method and revision evidence. Existing records without the new envelope remain UNKNOWN_UNVERIFIED. Declared source, transport capture, device authenticity and biomedical accuracy are separate concepts. See [data provenance](docs/DATA_PROVENANCE.md).
+
+The default server binds to loopback. On Windows installations where Application Control rejects SQLAlchemy's optional native extension, use its official pure-Python build (same pinned version), without changing Windows security settings:
+
+```powershell
+py -3.14 scripts/install_windows.py --pure-python-sqlalchemy
+.venv\Scripts\python.exe scripts/start_theia_services.py
+```
+
+The installer also accepts `--venv C:\path\to\environment`. It checks runtime imports and dependencies. Without a native-extension compatibility issue, omit `--pure-python-sqlalchemy`. OHIF remains an external, separately built dependency; Python installation alone does not install its JavaScript build. Read [known limitations and recovery](docs/KNOWN_LIMITATIONS.md).
+
+## Reproducible mission workflow
+
+This release adds independent historical references, auditable acquisition and five-hazard mission context. It is an experimental research prototype, not a diagnostic system. Physical sensors have not been validated. NASA references are distinguished from the public NASA POWER Earth-weather dataset and from simulated spacecraft conditions.
+
+On Windows with CPython 3.14:
+
+```powershell
+py -3.14 -m venv .venv
+.venv\Scripts\python.exe -m pip install --upgrade pip==26.3
+.venv\Scripts\python.exe -m pip install -r requirements-lock-windows-py314.txt
+.venv\Scripts\python.exe scripts/start_theia_services.py
+```
+
+Open the THEIA URL printed by the launcher (normally http://localhost:8507). OHIF requires the external build pinned in `config/integration-versions.json`; an occupied port alone is never accepted as a ready viewer. Existing unrelated processes are preserved. See the existing OHIF installation instructions below.
+
+For a complete demonstration: enable **Synthetic scenario workspace**, open **Mission Scenario Mode**, choose a replay, set **Replay days per tick**, and click **Start automatic scenario**. Pause/resume/stop work across pages while this browser workspace is open. Twenty replay days add 100 measurements and 180 explicitly simulated context observations to the 150 seeded measurements. Inspect Mission Overview, Intelligence Center, Scientific Analysis > Mission context & hazards, anatomy, Timeline and the scenario PDF. The final artificial deviation is intentional; no simulated association represents a physiological model. **Reset synthetic scenario** restores the isolated seed and clears its local test mirror, preserving normal records.
+
+Data Management offers explicitly authorized stable-folder CSV polling, HTTPS JSON polling and bounded Bluetooth HRS collection. Folder/API imports remain `IMPORTED_DATA`. Only an actual BLE notification during an established connection can obtain captured-sensor provenance. Backend behavior is mock-tested; no physical device was tested. For unattended local polling:
+
+```powershell
+.venv\Scripts\python.exe scripts/acquire_measurements.py --source folder --address C:\authorized\measurements --profile 1
+```
+
+The target profile must already exist. Stop with Ctrl+C. CSV columns: `metric_name,value,unit,timestamp`, optionally `data_quality_status,mission_context,notes`; use UTC timestamps and a final newline. Files must remain stable over consecutive polls and are never moved/deleted. API responses use a JSON list with the same fields; optional credentials come from an environment variable, never from an embedded URL. No universal wearable/API protocol is claimed.
+
+Run `python -m pytest -q` in the virtual environment. Browser verification additionally needs Playwright Chromium and pypdf: `python scripts/verify_mission_demo.py --url http://127.0.0.1:8507`. It edits only a new isolated synthetic workspace and renders the verified public CT inside OHIF. Screenshots and detailed capabilities/limits: [THEIA 5.0 implementation](docs/THEIA5_IMPLEMENTATION.md).
+
 ## Features
 
 - Local SQLite database with SQLAlchemy models
@@ -26,6 +72,8 @@ THEIA is a modular astronaut health monitoring and self-assessment platform desi
 - `utils/` — measurement validation and helper functions
 
 ## Installation
+
+For THEIA 5.1, use the pinned installation commands at the top. The version-specific sections below are historical; current provenance, engine and validation semantics are documented in `docs/FINAL_RELEASE_VALIDATION.md`.
 
 1. Open a terminal in the project root.
 2. Create a virtual environment:

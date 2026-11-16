@@ -11,6 +11,10 @@ from modules.ui.theme import apply_theia_theme, render_page_header
 
 
 def render_daily_checkin() -> None:
+    from config.web import public_demo
+    if public_demo():
+        st.info('PUBLIC SYNTHETIC DEMO: personal questionnaires are disabled. Explore the fictional sleep, mood and fatigue observations in Health Dashboard.')
+        return
     apply_theia_theme()
     render_page_header("Daily check-in", "Behavioral readiness • rest quality • mission self-reporting")
 
@@ -24,11 +28,19 @@ def render_daily_checkin() -> None:
             energy = st.slider("Energy (0-100)", 0, 100, 68)
             fatigue = st.slider("Fatigue (0-100)", 0, 100, 28)
             effort = st.slider("Perceived physical effort (0-100)", 0, 100, 44)
+            workload=st.slider('Perceived workload (0-100)',0,100,40)
+            stress=st.slider('Voluntary perceived stress (0-100)',0,100,30)
+            social_consent=st.checkbox('Voluntarily log social interaction minutes')
+            social_minutes=st.number_input('Voluntary social minutes',min_value=0.,value=None,key='checkin_social_minutes',
+                help='Optional. Stored only with explicit social-logging consent; zero and missing are distinct.')
+            social=social_minutes if social_consent else None
+            sleep_start=st.number_input('Reported rest start hour (UTC, 0-23.99)',min_value=0.,max_value=23.99,value=22.)
+            sleep_end=st.number_input('Reported rest end hour (UTC, 0-23.99)',min_value=0.,max_value=23.99,value=6.)
+            st.caption('Self-reports are not diagnostic scales. Social logging is optional. No camera or voice inference is used.')
             notes = st.text_area("General observations")
             symptoms = st.text_area("Optional symptoms")
 
-            progress = sum(value > 0 for value in [sleep_duration, sleep_quality, mood, energy, fatigue, effort])
-            st.progress(progress / 6)
+            st.caption('Review every value before submitting. Zero scores are valid and do not imply an incomplete questionnaire.')
             submitted = st.form_submit_button("Save check-in")
 
         if submitted:
@@ -49,6 +61,13 @@ def render_daily_checkin() -> None:
             from database.measurements import insert_measurement
             for metric, value, unit in [("sleep_hours", sleep_duration, "hours"), ("mood", mood, "score"), ("energy", energy, "score"), ("fatigue", fatigue, "score")]:
                 insert_measurement(session, checkin.astronaut_id, dict(metric_name=metric, value=value, unit=unit, timestamp=checkin.timestamp, source="MANUALLY_ENTERED_DATA", mission_context="Daily check-in"), commit=False)
+            from services.space_context import add_context
+            context=[('workload_score',workload),('stress_score',stress),('sleep_start_hour',sleep_start),('sleep_end_hour',sleep_end)]
+            if social is not None:context.append(('social_minutes',social))
+            for name,value in context:
+                add_context(session,checkin.astronaut_id,dict(kind='wellbeing',timestamp=checkin.timestamp,
+                    source='SIMULATED_DATA' if session.info.get('scenario') else 'MANUALLY_ENTERED_DATA',instrument='Voluntary self-report',
+                    payload={'metric':name,'value':value,'consent':social_consent}),commit=False)
             session.commit()
             st.success("Daily check-in saved and added to mission history.")
 

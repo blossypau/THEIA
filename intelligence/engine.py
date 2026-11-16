@@ -10,13 +10,14 @@ from database.measurements import measurement_frame
 from database.models import ScientificAnalysisRecord
 from utils.measurement_schema import MeasurementPayload
 
-VERSION = "4.2.0"
+VERSION = "5.1.0"
 LIMITATIONS = "Experimental statistics, not a validated medical AI. Associations are not causal. Baselines include the selected period. Mixed sources are summarized separately."
 
 
 def analyze(session, astronaut_id, start=None, end=None, persist=True):
     frame = measurement_frame(session, astronaut_id, start=start, end=end)
-    fingerprint = hashlib.sha256((frame.to_json(date_format="iso", date_unit="us", double_precision=15, orient="records") + str((astronaut_id, start, end, VERSION))).encode()).hexdigest()
+    analytical_columns=['id','metric_name','value','unit','timestamp','source','data_quality_status','mission_context','provenance_class','is_simulation']
+    fingerprint = hashlib.sha256((frame[analytical_columns].to_json(date_format="iso", date_unit="us", double_precision=15, orient="records") + str((astronaut_id, start, end, VERSION))).encode()).hexdigest()
     source_key = f"profile:{astronaut_id}:{fingerprint}"
     cached = session.query(ScientificAnalysisRecord).filter_by(analysis_type="integrated_health", version=VERSION, dataset_source=source_key).first()
     if cached:
@@ -35,10 +36,16 @@ def analyze(session, astronaut_id, start=None, end=None, persist=True):
     valid = frame.loc[valid_indices].copy()
     result["quality"]["excluded"] = len(frame) - len(valid)
     result["quality"]["sources"] = frame.source.value_counts().to_dict()
+    result['quality']['provenance']=frame.provenance_class.value_counts().to_dict()
     if not frame.empty:
         result["period"].update(first=frame.timestamp.min().isoformat(), last=frame.timestamp.max().isoformat())
     # Keep simulated, imported and manual/sensor cohorts distinct.
     valid["cohort"] = valid.source.map(lambda s: "simulated" if s == "SIMULATED_DATA" else "research" if s in {"PUBLIC_RESEARCH_DATA", "IMPORTED_DATA"} else "mission")
+    # Keep legacy keys for single-source series; never pool different exact sources/evidence.
+    for _,indexes in valid.groupby(['metric_name','cohort']).groups.items():
+        group=valid.loc[indexes]
+        if len(group[['source','provenance_class']].drop_duplicates())>1:
+            valid.loc[indexes,'cohort']=group.cohort+' / '+group.source+' / '+group.provenance_class
     for (metric, cohort), group in valid.groupby(["metric_name", "cohort"]):
         values = group.value.to_numpy(dtype=float)
         n = len(values)
@@ -73,12 +80,13 @@ def analyze(session, astronaut_id, start=None, end=None, persist=True):
             "explanation": "Absolute z-score > 2.5; Isolation Forest evaluated from 20 samples with at least 5 distinct values. Flags indicate statistical outliers only."}
     if not valid.empty:
         valid["day"] = valid.timestamp.dt.floor("D")
-        for cohort, group in valid.groupby("cohort"):
+        for (source, provenance), group in valid.groupby(["source", "provenance_class"]):
+            cohort=str(group.cohort.iloc[0]).split(' / ')[0]
             daily = group.pivot_table(index="day", columns="metric_name", values="value", aggfunc="mean")
             for left, right in combinations(daily.columns, 2):
                 paired = daily[[left, right]].dropna()
                 if len(paired) >= 5 and (paired.std() > 0).all():
-                    result["relationships"].append({"left": left, "right": right, "cohort": cohort, "paired_days": len(paired),
+                    result["relationships"].append({"left": left, "right": right, "cohort": cohort, "source": source, "provenance_class":provenance,"paired_days": len(paired),
                         "pearson_r": float(paired[left].corr(paired[right])), "alignment": "UTC daily mean; exploratory, not causal"})
     if persist:
         session.add(ScientificAnalysisRecord(analysis_type="integrated_health", model_name="THEIA statistical engine", version=VERSION,

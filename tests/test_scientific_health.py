@@ -90,6 +90,7 @@ def test_nn_analytic_reference_values_and_upstream_denominator(session):
     assert result['metrics']['HRV_RMSSD']==100
     assert result['metrics']['HRV_pNN50']==99.5
     assert result['duration_seconds']==170
+    session.info['scenario']=True  # Isolated in-memory synthetic NN workspace.
     first=save_nn_analysis(session,1,result);second=save_nn_analysis(session,1,result)
     assert first.id==second.id
     stored=json.loads(first.result_summary)

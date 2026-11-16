@@ -1,0 +1,18 @@
+{
+  "source": "NASA POWER / MERRA2",
+  "url": "https://power.larc.nasa.gov/api/temporal/daily/point",
+  "request": {
+    "parameters": "T2M,RH2M,PS",
+    "community": "RE",
+    "latitude": 28.5721,
+    "longitude": -80.648,
+    "start": "20240101",
+    "end": "20240107",
+    "format": "JSON",
+    "time-standard": "UTC"
+  },
+  "sha256": "00e3512a252592d0c73c6d70c42ed7a1664f61030c0bc702c3f445b0b2e29db1",
+  "retrieved": "2026-11-15",
+  "scope": "Historical terrestrial gridded environment; not cabin conditions, astronaut telemetry or individual exposure",
+  "reuse": "NASA POWER data are freely available; retain NASA POWER/MERRA2 attribution. See https://power.larc.nasa.gov/docs/faqs/data/"
+}
